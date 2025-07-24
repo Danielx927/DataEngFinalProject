@@ -1,0 +1,7 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+typst_poster_template/*.pdf
+typst_poster_template/*.typ
