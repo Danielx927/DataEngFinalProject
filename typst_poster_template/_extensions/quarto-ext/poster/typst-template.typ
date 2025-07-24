@@ -1,3 +1,16 @@
+#show link: set text(fill: rgb("#DC3C22"))
+
+
+#set table(
+  columns: 3, 
+  align: left, 
+  stroke: 1pt + rgb("#5A4632"),
+  inset: 5pt,
+  row-gutter: 0pt,
+  column-gutter: 0pt,
+  fill: (x, y) => if y == 0 { rgb("#E3B68C") } else { rgb("#F8EFC9") },
+)
+
 
 #let poster(
   // The poster's size.
@@ -10,7 +23,7 @@
   authors: "Author Names (separated by commas)",
 
   // Department name.
-  departments: "Department Name",
+  departments: "Department",
 
   // University logo.
   univ_logo: "Logo Path",
@@ -24,7 +37,7 @@
   footer_url: "Footer URL",
 
   // Email IDs of the authors.
-  footer_email_ids: "Email IDs (separated by commas)",
+  footer_email_ids: "Team XX",
 
   // Color of the footer.
   footer_color: "Hex Color Code",
@@ -43,31 +56,31 @@
   num_columns: "3",
 
   // University logo's scale (in %).
-  univ_logo_scale: "100",
+  univ_logo_scale: "90",
 
   // University logo's column size (in in).
   univ_logo_column_size: "10",
 
   // Title and authors' column size (in in).
-  title_column_size: "20",
+  title_column_size: "14",
 
   // Poster title's font size (in pt).
-  title_font_size: "48",
+  title_font_size: "70",
 
   // Authors' font size (in pt).
-  authors_font_size: "36",
+  authors_font_size: "30",
 
-  // Footer's URL and email font size (in pt).
+  // Footer's URL and date font size (in pt).
   footer_url_font_size: "30",
 
   // Footer's text font size (in pt).
-  footer_text_font_size: "40",
+  footer_text_font_size: "25",
 
   // The poster's content.
   body
 ) = {
   // Set the body font.
-  set text(font: "STIX Two Text", size: 16pt)
+  set text(font: "STIX Two Text", size: 18pt, fill: rgb("#5A4632"))
   let sizes = size.split("x")
   let width = int(sizes.at(0)) * 1in
   let height = int(sizes.at(1)) * 1in
@@ -86,17 +99,20 @@
     width: width,
     height: height,
     margin: 
-      (top: 1in, left: 2in, right: 2in, bottom: 2in),
+      (top: 1in, left: 1in, right: 1in, bottom: 2in),
+    background: box(
+      fill: rgb("#FBF5DE"),
+      width: 100%,
+      height: 100%),
     footer: [
       #set align(center)
-      #set text(32pt)
+      #set text(32pt, fill: rgb("#FBF5DE"))
       #block(
-        fill: rgb(footer_color),
+        fill: rgb("DC3C22"),
         width: 100%,
-        inset: 20pt,
+        inset: 10pt,
         radius: 10pt,
         [
-          #text(font: "Courier", size: footer_url_font_size, footer_url) 
           #h(1fr) 
           #text(size: footer_text_font_size, smallcaps(footer_text)) 
           #h(1fr) 
@@ -111,8 +127,8 @@
   show math.equation: set block(spacing: 0.65em)
 
   // Configure lists.
-  set enum(indent: 10pt, body-indent: 9pt)
-  set list(indent: 10pt, body-indent: 9pt)
+  set enum(indent: 10pt, body-indent: 15pt)
+  set list(indent: 10pt, body-indent: 20pt)
 
   // Configure headings.
   set heading(numbering: "I.A.1.")
@@ -129,11 +145,11 @@
     if it.level == 1 [
       // First-level headings are centered smallcaps.
       #set align(center)
-      #set text({ 32pt })
+      #set text(35pt, weight: 700, font: "Times New Roman", fill: rgb("#DC3C22"))
       #show: smallcaps
       #v(50pt, weak: true)
       #if it.numbering != none {
-        numbering("I.", deepest)
+        numbering("1.", deepest)
         h(7pt, weak: true)
       }
       #it.body
@@ -141,18 +157,18 @@
       #line(length: 100%)
     ] else if it.level == 2 [
       // Second-level headings are run-ins.
-      #set text(style: "italic")
+      #set text(30pt, font: "Times New Roman", style: "italic", fill: rgb("#DC3C22"))
       #v(32pt, weak: true)
       #if it.numbering != none {
-        numbering("i.", deepest)
+        numbering("a )", deepest)
         h(7pt, weak: true)
       }
       #it.body
-      #v(10pt, weak: true)
+      #v(20pt, weak: true)
     ] else [
       // Third level headings are run-ins too, but different.
       #if it.level == 3 {
-        numbering("1)", deepest)
+        numbering("i.)", deepest)
         [ ]
       }
       _#(it.body):_
@@ -160,16 +176,20 @@
   })
 
   // Arranging the logo, title, authors, and department in the header.
-  align(center,
-    grid(
-      rows: 2,
-      columns: (univ_logo_column_size, title_column_size),
-      column-gutter: 0pt,
-      row-gutter: 50pt,
-      image(univ_logo, width: univ_logo_scale),
-      text(title_font_size, title + "\n\n") + 
-      text(authors_font_size, emph(authors) + 
-          "   (" + departments + ") "),
+  grid(
+    columns: (univ_logo_column_size, title_column_size),
+    column-gutter: 15pt,
+    align(
+      center,
+      image(univ_logo, width: univ_logo_scale)
+    ),
+    align(
+      center,
+      stack(
+        spacing: 6pt,
+        text(title_font_size, fill: rgb("#DC3C22"), font: "Times New Roman", title),
+        text(authors_font_size, fill: rgb("#E7C29C"), font: "Fira Sans", emph(authors) + departments),
+      )
     )
   )
 
@@ -180,7 +200,7 @@
 
   // Display the keywords.
   if keywords != () [
-      #set text(24pt, weight: 400)
+      #set text(100pt, weight: 400)
       #show "Keywords": smallcaps
       *Keywords* --- #keywords.join(", ")
   ]

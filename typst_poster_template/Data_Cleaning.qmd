@@ -1,0 +1,59 @@
+---
+title: "COE Data Cleaning"
+format: 
+  html:
+    theme: flatly
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    code-summary: "Show Code"
+    df-print: paged
+---
+
+# 1. Load necessary libraries and Excel file
+```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+library(readxl)
+library(dplyr)
+library(stringr)
+library(knitr)
+
+file_path <- "data/Results of COE Bidding Exercise.xlsx"
+coe_raw <- read_excel(file_path)
+```
+
+# 2. Data Cleaning for COE Bidding Exercise
+
+## Step 2.1 Check for any null (NA) values
+```{r}
+null_summary <- sapply(coe_raw, function(x) sum(is.na(x)))
+null_df <- data.frame(Column = names(null_summary), Null_Count = as.integer(null_summary))
+
+kable(null_df, caption = "Summary of Null Values per Column")
+```
+
+## Step 2.2: Create a new column `Bid to Quota` (Quota / Total Bids Received)
+```{r}
+coe_clean <- coe_raw %>%
+  mutate(
+    `Bid to Quota` = `Total Bids Received` / `Quota`
+  )
+```
+
+## Step 2.3: Simplify the `Bidding Exercise` column to "Bid 1" or "Bid 2"
+```{r}
+coe_clean <- coe_clean %>%
+  mutate(
+    `Bidding Exercise` = case_when(
+      str_detect(`Bidding Exercise`, regex("First", ignore_case = TRUE)) ~ "Bid 1",
+      str_detect(`Bidding Exercise`, regex("Second", ignore_case = TRUE)) ~ "Bid 2",
+      TRUE ~ `Bidding Exercise`
+    )
+  )
+```
+
+## Step 2.4: View the cleaned data
+```{r}
+print(head(coe_clean))
+```
+
+

@@ -1,0 +1,121 @@
+---
+title: COE Price Trends
+format:
+  poster-typst: 
+    size: "36x24"
+    poster-authors: "F. Lambert, Lavanya, Darren, Daniel and Bryan"
+    departments: "&nbsp;"
+    institution-logo: "./images/sit.png"
+    footer-text: "AAI1001 AY24/25 Tri 2 Team Project"
+    footer-emails: "Team 01"
+    footer-color: "FBF5DE" 
+---
+
+# Introduction
+
+The Certificate of Entitlement (COE) system, introduced in 1990, regulates Singapore’s vehicle population by requiring prospective vehicle owners to bid for limited certificates valid for 10 years. This quota-based system supports sustainable urban planning and curbs road congestion. COE prices vary with market demand, economic trends, and government policy. This project examines the evolution of COE prices across vehicle categories, highlighting key patterns and their implications on consumer behavior and transport policy.
+
+# Previous Visualisation
+
+![Original Visualisation from CNA](./images/original_chart.jpg)
+
+# Strengths
+
+| `Index`       | `Strength`                | `Elaboration`                                                                                                   |
+| ------------- | ------------------------- |---------------------------------------------------------------------------------------------------------------- |
+| 1             | Clear Trend Lines         | Colour-coded lines for each COE category clearly show long-term trends across time.                             |
+| 2             | Endpoint Labels           | Annotated end values (e.g., Cat B: S\$135,336) help highlight latest prices without hovering.                   |
+| 3             | Distinct Category Colours | Each COE category is represented by a distinct, recognisable colour.                                            |
+| 4             | Clean Design              | Minimalist styling focuses attention on the data without distractions.                                          |
+| 5             | Consistent Time Axis      | Uniform x-axis with quarterly markers supports visual comparison across years.                                  |
+| 6             | High Readability          | Large fonts and good spacing improve visual clarity.                                                            |
+| 7             | Snapshot of Timeframe     | Covers more than a decade (2012–2023), providing historical context.                                            |
+| 8             | Interactive Exploration   | Hover and filter by category and year to uncover meaningful patterns hidden in the data.                        |
+
+: Key Strengths of Visualisation {#tbl-1}
+
+
+# Suggested Improvements
+| `Index `      | `Improvement`             | `Elaboration`                                                                                                   |
+| ------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 1             | X-Axis Granularity        | Replace quarterly ticks with bi-monthly or monthly markers to match the COE bidding schedule.                   |
+| 2             | Category Clarification    | Include descriptive labels or tooltips (e.g., “Cat A: Small cars ≤1600cc or ≤130bhp”) for better context.       |
+| 3             | Policy/Economic Context   | Overlay annotations for major events (e.g., COVID-19, VES changes, loan curbs) to explain price shifts.         |
+| 4             | Category D Visibility     | Either use a dual y-axis or allow category filtering to highlight Cat D, which has much lower prices.           |
+| 6             | Supply Context            | Add an additional trend line showing quota levels to relate supply to price fluctuations.                       |
+| 7             | Analytical Depth          | Include percentage change indicators for key periods to show rate of price movement over time.                  |
+| 8             | Interactivity             | Add chart to be dynamic and scaled according to filter of chart elements to allow for better visual comparisons.|
+
+: Suggested Improvements to Visualisation {#tbl-2}
+
+
+# Implementation
+
+
+::: {.block fill=rgb("F3E0CE") inset="10pt" radius="15pt"}
+
+## Data Source:
+
+- The data taken from the [CNA article](https://www.channelnewsasia.com/singapore/coe-prices-car-premiums-deep-dive-does-bidding-system-need-update-3936056) has the following columns:
+  1. **Bidding Exercise**: Indicates whether it is the first or second bid of the month.
+  2. **Announcement Date**: The date when the COE results are announced.
+  3. **Year**: The year of the bidding exercise.
+  4. **Category**: The COE category (e.g., Cat A, Cat B).
+  5. **Quota**: The number of COEs available for bidding.
+  6. **Quota Premium**: The premium amount for the quota.
+  7. **Total Bids Received**: The total number of bids received for that category.
+  8. **Number of Successful Bids**: The number of successful bids for that category.
+
+You can visit the [`Google Sheet`](https://docs.google.com/spreadsheets/d/1Ma8dm_rdtdfNp8ONUG5ykFHwrEg1GFC3ObOMualMVBM/edit?gid=0#gid=0) for more information.
+
+## Data Wrangling:
+- These were the changes made to the dataset
+1. **bid to quota** ratio column was added to better show the relationship of `supply and demand` of the COE prices
+2. **Bidding Exercise** was shortened to either `1` or `2` to illustrate which bid of the month it is
+
+
+## Software: 
+- `tidyverse` for data wrangling
+- `knitr` for table formatting
+- `stringr` for string manipulation
+- `dplyr` for data manipulation
+- `readxl` for reading Excel files
+- `plotly` for interactive visualizations
+- Quarto PDF format with `Typst` poster layout
+:::
+
+# Improved Visualisation
+
+
+# Insight
+
+Quod idem licet transferre in voluptatem, ut postea variari voluptas distinguique possit, augeri amplificarique non possit. At etiam Athenis, ut e patre audiebam facete et urbane Stoicos irridente, statua est in quo a nobis philosophia defensa et collaudata est, cum id, quod maxime placeat, facere possimus, omnis voluptas assumenda est, om- nis dolor repellendus. Temporibus autem quibusdam et.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim aeque doleamus animo, cum corpore dolemus, fieri tamen permagna accessio potest, si aliquod aeternum et infinitum impendere malum nobis opinemur. 
+
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim aeque doleamus animo, cum corpore dolemus, fieri tamen permagna accessio potest, si aliquod aeternum et infinitum impendere malum nobis opinemur. Quod idem licet transferre in voluptatem, ut postea variari voluptas distinguique possit, augeri amplificarique non possit. At etiam Athenis, ut e patre audiebam facete et urbane Stoicos irridente, statua est in quo a nobis philosophia defensa et collaudata est, cum id, quod maxime placeat, facere possimus, omnis voluptas assumenda est, om- nis dolor repellendus. Temporibus autem quibusdam et.
+
+- Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do.
+  - Lorem ipsum dolor sit amet.
+  -  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+- Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.
+  - Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed. 
+  - Lorem ipsum dolor sit amet, consectetur adipiscing.
+
+# Further suggestions
+
+# Conclusion
+
+# References
+
+
+```
+## Interactive Plots
+If your code execution output is an interactive plot using, e.g., `plotly` or `shiny`, having e.g., hover effects, zoom effects, drop-down menus, sliders, etc., it is suggested that you
+
+1.  save a static version of the plot as PNG and include it in the poster.
+2.  prepare an HTML live demo of the interactive plot to be presented during the poster session.
+```
+
+
