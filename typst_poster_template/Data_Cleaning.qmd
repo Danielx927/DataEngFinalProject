@@ -31,7 +31,7 @@ null_df <- data.frame(Column = names(null_summary), Null_Count = as.integer(null
 kable(null_df, caption = "Summary of Null Values per Column")
 ```
 
-## Step 2.2: Create a new column `Bid to Quota` (Quota / Total Bids Received)
+## Step 2.2: Create a new column `Bid to Quota` (Total Bids Received / Quota)
 ```{r}
 coe_clean <- coe_raw %>%
   mutate(
@@ -39,13 +39,13 @@ coe_clean <- coe_raw %>%
   )
 ```
 
-## Step 2.3: Simplify the `Bidding Exercise` column to "Bid 1" or "Bid 2"
+## Step 2.3: Simplify the `Bidding Exercise` column to "1" or "2"
 ```{r}
 coe_clean <- coe_clean %>%
   mutate(
     `Bidding Exercise` = case_when(
-      str_detect(`Bidding Exercise`, regex("First", ignore_case = TRUE)) ~ "Bid 1",
-      str_detect(`Bidding Exercise`, regex("Second", ignore_case = TRUE)) ~ "Bid 2",
+      str_detect(`Bidding Exercise`, regex("First", ignore_case = TRUE)) ~ "1",
+      str_detect(`Bidding Exercise`, regex("Second", ignore_case = TRUE)) ~ "2",
       TRUE ~ `Bidding Exercise`
     )
   )
