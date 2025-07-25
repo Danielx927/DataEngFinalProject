@@ -2,7 +2,7 @@
 title: "COE graphs"
 format: html
 execute:
-  echo: false
+  echo: true
   warning: false
   message: false
 ---
@@ -27,6 +27,7 @@ head(coe)
 ## 2. Data Processing
 
 ::: {.callout-tip collapse="true" icon=false title="Step 2.1: Renaming the Columns"}
+
 ```{r}
 # Data processing
 coe_clean <- coe |>
@@ -79,13 +80,23 @@ for (cat in c("Cat A: ≤1600cc or ≤130bhp",
   }
 }
 
-quota_data <- coe_clean |>
+# Create supply-demand ratio data
+supply_demand_data <- coe_clean |>
   group_by(Announcement.Date) |>
-  summarise(quota = sum(Quota, na.rm = TRUE), .groups = "drop") |>
+  summarise(
+    total_bids = sum(Total.Bids.Received, na.rm = TRUE),
+    total_quota = sum(Quota, na.rm = TRUE),
+    ratio = total_bids / total_quota,
+    .groups = "drop"
+  ) |>
   arrange(Announcement.Date)
 
-# Prevent negative or corrupted quota values
-quota_data <- quota_data |> mutate(quota = pmax(quota, 0))
+# Clean any infinite or NaN values
+supply_demand_data <- supply_demand_data |>
+  mutate(
+    ratio = ifelse(is.finite(ratio), ratio, NA),
+    ratio = pmax(ratio, 0)
+  )
 
 
 
@@ -128,24 +139,26 @@ for (cat in names(category_colors)) {
 # Add quota line
 fig <- fig |>
   add_trace(
-    data = quota_data,
+    data = supply_demand_data,
     x = ~Announcement.Date,
-    y = ~quota,
+    y = ~ratio,
     type = "scatter",
     mode = "lines",
-    name = "Total Quota (Supply)",
-    yaxis = "y",
+    name = "Demand-to-Supply Ratio",
+    yaxis = "y2",
     line = list(color = "#333333", width = 2, dash = "dot"),
     hoverinfo = "text",
     text = ~paste0(
       "<b>Quota Supply</b><br>",
       "Date: ", format(Announcement.Date, "%d %b %Y"), "<br>",
-      "Quota: ", format(quota, big.mark = ","))
+      "Ratio: ", round(ratio, 2)
   )
+)
 
 fig
 
 ```
+:::
 
 ::: {.callout-tip collapse="true" icon=false title="Step 2.4: Adding Annotations"}
 ```{r}
@@ -227,14 +240,14 @@ fig <- fig |>
       zerolinecolor = "#cccccc"
     ),
     yaxis2 = list(
-      title = "<b>Quota (Supply)</b>",
+      title = "<b>Demand / Supply Ratio</b>",
       overlaying = "y",
       side = "right",
       showgrid = FALSE,
       tickformat = "~s",
       zeroline = TRUE,
       zerolinecolor = "#cccccc",
-      range = c(0, 7000),
+      range = c(0, 3),
       fixedrange = TRUE  # prevents zoom from messing with range
     ),
     # barmode = "stack",
@@ -267,3 +280,4 @@ fig <- fig |>
 fig
 
 ```
+:::
