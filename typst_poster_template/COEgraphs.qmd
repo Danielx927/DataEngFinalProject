@@ -8,15 +8,17 @@ execute:
 ---
 
 ::: {.callout-note collapse="true"}
+
 ## 1. Load Necessary Libraries and Read Cleaned CSV File
+
 ```{r, echo=TRUE, results='hide'}
 #import libraries, and read csv file
 #| fig-align: center
 #| output: asis
 
 library(tidyverse)
-library(plotly)
 library(lubridate)
+library(plotly)
 
 # Load data (make sure file is in your working directory)
 coe <- read.csv("data/coe_cleaned.csv")
@@ -29,7 +31,7 @@ head(coe)
 ::: {.callout-tip collapse="true" icon=false title="Step 2.1: Renaming the Columns"}
 
 ```{r}
-# Data processing
+# Clean and Prepare Data
 coe_clean <- coe |>
   filter(Category %in% c(
     "Cat A (Cars up to 1600cc and 97kW)", 
@@ -40,8 +42,6 @@ coe_clean <- coe |>
     ) |>
    mutate(
     Announcement.Date = ymd(Announcement.Date),
-    #bidding_date = ymd(Announcement.Date) + days((Bidding.Exercise - 1) * 14),
-
     vehicle_class = case_when(
       Category == "Cat E (Open)" ~ "Cat E: Open",
       Category == "Cat D (Motorcycles)" ~ "Cat D: Motorcycles",
@@ -49,56 +49,8 @@ coe_clean <- coe |>
       Category == "Cat B (Cars above 1600cc or 97kW)" ~ "Cat B: >1600cc or >130bhp",
       Category == "Cat A (Cars up to 1600cc and 97kW)" ~ "Cat A: ≤1600cc or ≤130bhp",
       TRUE ~ NA_character_
-)
-
+    )
   )
-
-```
-:::
-
-::: {.callout-tip collapse="true" icon=false title="Step 2.2: Preparing data for plotting"}
-
-```{r}
-# Prepare data for plotting
-premium_data <- coe_clean |>
-  group_by(Announcement.Date, vehicle_class) |>
-  summarise(premium = mean(Quota.Premium, na.rm = TRUE), .groups = "drop") |>
-  pivot_wider(
-    names_from = vehicle_class,
-    values_from = premium,
-    values_fill = 0
-  ) |>
-  arrange(Announcement.Date) 
-
-# Add missing categories as columns with 0 values
-for (cat in c("Cat A: ≤1600cc or ≤130bhp", 
-              "Cat B: >1600cc or >130bhp",
-              "Cat C: Buses",
-              "Cat D: Motorcycles")) {
-  if (!cat %in% colnames(premium_data)) {
-    premium_data[[cat]] <- 0
-  }
-}
-
-# Create supply-demand ratio data
-supply_demand_data <- coe_clean |>
-  group_by(Announcement.Date) |>
-  summarise(
-    total_bids = sum(Total.Bids.Received, na.rm = TRUE),
-    total_quota = sum(Quota, na.rm = TRUE),
-    ratio = total_bids / total_quota,
-    .groups = "drop"
-  ) |>
-  arrange(Announcement.Date)
-
-# Clean any infinite or NaN values
-supply_demand_data <- supply_demand_data |>
-  mutate(
-    ratio = ifelse(is.finite(ratio), ratio, NA),
-    ratio = pmax(ratio, 0)
-  )
-
-
 
 # Color palette
 category_colors <- c(
@@ -107,177 +59,262 @@ category_colors <- c(
   "Cat C: Buses" = "#2ca02c",
   "Cat D: Motorcycles" = "#d62728"
 )
+  
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.3: Creating the Plot"}
+::: {.callout-tip collapse="true" icon=false title="Step 2.2: Preparing Premium and Ratio Data"}
 
 ```{r}
-# Create plot
-fig <- plot_ly() 
+# Prepare premium data
+premium_data <- coe_clean |>
+  group_by(Announcement.Date, vehicle_class) |>
+  summarise(premium = mean(Quota.Premium, na.rm = TRUE), .groups = "drop") |>
+  filter(vehicle_class %in% names(category_colors)) |>
+  arrange(Announcement.Date)
 
-# Add Premium Lines
+# Prepare bid-to-quota ratio
+bid_quota_ratio <- coe_clean |>
+  group_by(Announcement.Date, vehicle_class) |>
+  summarise(
+    total_bids = sum(Total.Bids.Received, na.rm = TRUE),
+    total_quota = sum(Quota, na.rm = TRUE),
+    ratio = total_bids / total_quota,
+    .groups = "drop"
+  ) |>
+  filter(vehicle_class %in% names(category_colors) & vehicle_class != "Cat D: Motorcycles") |>
+  mutate(ratio = ifelse(is.finite(ratio), ratio, NA_real_)) |>
+  arrange(Announcement.Date)
+
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.3: Interactive Plotly Subplots"}
+
+```{r}
+## 1. Premium Line Plot (top)
+p1 <- plot_ly()
+
 for (cat in names(category_colors)) {
-  fig <- fig |>
+  cat_data <- premium_data |> filter(vehicle_class == cat)
+  p1 <- p1 |>
     add_trace(
-      data = premium_data,
+      data = cat_data,
       x = ~Announcement.Date,
-      y = as.formula(paste0("~`", cat, "`")),
+      y = ~premium,
       type = "scatter",
       mode = "lines",
       name = cat,
-      yaxis = "y",
+      line = list(color = category_colors[cat]),
       hoverinfo = "text",
-      text = paste0(
-      "<b>", cat, "</b><br>",
-      "Date: ", format(premium_data$Announcement.Date, "%d %b %Y"), "<br>",
-      "Premium: $", format(round(premium_data[[cat]]), big.mark = ",")
+      text = ~paste0(
+        "<b>", vehicle_class, "</b><br>",
+        "Date: ", format(Announcement.Date, "%Y-%m"), "<br>",
+        "Premium: $", format(round(premium), big.mark = ",")
       )
-    )    
+    )
 }
 
-# Add quota line
-fig <- fig |>
+p1 <- p1 |>
+  layout(
+    xaxis = list(
+      title = "<b>Bidding Date</b>",
+      showticklabels = TRUE,
+      tickangle = -45,
+      tickformat = "%b %Y",
+      tickformatstops = list(
+        list(dtickrange = list(NULL, 2592000000), value = "%b %Y"),
+        list(dtickrange = list(2592000000, 31536000000), value = "%b %Y"),
+        list(dtickrange = list(31536000000, NULL), value = "%Y")
+      )
+    ),
+    yaxis = list(
+      domain = c(0.45, 1),
+      title = list(
+        text = "<b>COE Premium (SGD)</b>",
+        font = list(size = 14),
+        standoff = 20
+      ),
+      tickformat = "$,.0f",
+      tickfont = list(size = 12),
+      ticks = "outside",
+      ticklabelposition = "outside",
+      automargin = TRUE
+    )
+  )
+
+# 2. Bid-to-Quota Ratio Plot (bottom)
+p2 <- plot_ly()
+
+for (cat in names(category_colors)) {
+  cat_data <- bid_quota_ratio |> filter(vehicle_class == cat)
+  
+  p2 <- p2 |>
+    add_trace(
+      data = cat_data,
+      x = ~Announcement.Date,
+      y = ~ratio,
+      type = "scatter",
+      mode = "lines",
+      name = cat,
+      line = list(color = category_colors[cat]),
+      hoverinfo = "text",
+      text = ~paste0(
+        "<b>", vehicle_class, "</b><br>",
+        "Date: ", format(Announcement.Date, "%Y-%m"), "<br>",
+        "Ratio: ", round(ratio, 2)
+      ),
+      showlegend = FALSE
+    )
+}
+
+# Add demand=supply line
+p2 <- p2 |>
   add_trace(
-    data = supply_demand_data,
-    x = ~Announcement.Date,
-    y = ~ratio,
+    x = ~range(bid_quota_ratio$Announcement.Date),
+    y = c(1, 1),
     type = "scatter",
     mode = "lines",
-    name = "Demand-to-Supply Ratio",
-    yaxis = "y2",
-    line = list(color = "#333333", width = 2, dash = "dot"),
-    hoverinfo = "text",
-    text = ~paste0(
-      "<b>Quota Supply</b><br>",
-      "Date: ", format(Announcement.Date, "%d %b %Y"), "<br>",
-      "Ratio: ", round(ratio, 2)
+    line = list(dash = "dot", color = "red", width = 2),
+    name = "Supply = Demand",
+    showlegend = FALSE,
+    hoverinfo = "none"
+  ) |>
+  layout(
+    yaxis = list(
+      domain = c(0, 0.35),
+      title = list(
+        text = "<b>Bid-to-Quota Ratio</b>",
+        font = list(size = 14),
+        standoff = 20
+      ),
+      range = c(0.5, 3),
+      tickformat = ".1f",
+      tickfont = list(size = 12),
+      ticks = "outside",
+      ticklabelposition = "outside",
+      automargin = TRUE
+    ),
+    xaxis = list(
+      title = "<b>Bidding Date</b>",
+      tickangle = -45,
+      rangeslider = list(visible = TRUE),
+      tickformatstops = list(
+        list(dtickrange = list(NULL, 2592000000), value = "%b %Y"),
+        list(dtickrange = list(2592000000, 31536000000), value = "%b %Y"),
+        list(dtickrange = list(31536000000, NULL), value = "%Y")
+      ),
+      tickfont = list(size = 11)
+    )
   )
-)
-
-fig
 
 ```
 :::
 
 ::: {.callout-tip collapse="true" icon=false title="Step 2.4: Adding Annotations"}
 ```{r}
-annotations <- list(
+# Shaded event bands
+shapes_list <- list(
   list(
-    x = as.Date("2020-04-01"),
-    y = 0,
-    yref = "y",
-    text = "<b>COVID-19 Lockdown</b>",
-    showarrow = TRUE,
-    arrowhead = 4,
-    ax = 0,
-    ay = 30,
-    font = list(size = 12, color = "#333333"),
-    bgcolor = "rgba(255,255,255,0.9)",
-    bordercolor = "#cccccc",
-    xanchor = "center"
+    type = "rect",
+    xref = "x",         
+    yref = "paper", 
+    x0 = as.Date("2020-04-07"),
+    x1 = as.Date("2020-06-01"),
+    y0 = 0,
+    y1 = 150000,
+    fillcolor = "rgba(255,0,0,0.15)",
+    line = list(width = 0),
+    layer = "below"
   ),
   list(
-    x = as.Date("2023-05-01"),
-    y = 0,
-    yref = "y",
-    text = "<b>Quota Tightening</b>",
-    showarrow = TRUE,
-    arrowhead = 4,
-    ax = 0,
-    ay = 50,
-    font = list(size = 12, color = "#333333"),
-    bgcolor = "rgba(255,255,255,0.9)",
-    bordercolor = "#cccccc",
-    xanchor = "center"
+    type = "rect",
+    xref = "x",         
+    yref = "paper",
+    x0 = as.Date("2023-05-01"),
+    x1 = as.Date("2023-06-01"),
+    y0 = 0,
+    y1 = 150000,
+    fillcolor = "rgba(0,0,255,0.15)",
+    line = list(width = 0),
+    layer = "below"
   ),
   list(
-    x = as.Date("2013-03-01"),
-    y = 0,
-    yref = "y",
-    text = "<b>Loan Curbs Introduced</b>",
-    showarrow = TRUE,
-    arrowhead = 4,
-    ax = 0,
-    ay = 50,
-    font = list(size = 12, color = "#333333"),
-    bgcolor = "rgba(255,255,255,0.9)",
-    bordercolor = "#cccccc",
-    xanchor = "center"
+    type = "rect",
+    xref = "x",         
+    yref = "paper",
+    x0 = as.Date("2013-02-01"),
+    x1 = as.Date("2013-04-01"),
+    y0 = 0,
+    y1 = 150000,
+    fillcolor = "rgba(255,165,0,0.15)",
+    line = list(width = 0),
+    layer = "below"
   )
 )
 
-fig
+# Annotation text labels for those bands
+annotations_list <- list(
+  list(
+    x = as.Date("2020-05-01"),
+    y = 1.07,
+    xref = "x",
+    yref = "paper",
+    text = "<b>COVID-19<br>Circuit Breaker</b>",
+    showarrow = FALSE,
+    font = list(size = 8, color = "#333"),
+    yanchor = "bottom"
+  ),
+  list(
+    x = as.Date("2023-05-15"),
+    y = 1.02,
+    xref = "x",
+    yref = "paper",
+    text = "<b>Quota Tightening</b>",
+    showarrow = FALSE,
+    font = list(size = 8, color = "#333"),
+    yanchor = "bottom"
+  ),
+  list(
+    x = as.Date("2013-03-01"),
+    y = 1.02,
+    xref = "x",
+    yref = "paper",
+    text = "<b>Loan Curbs</b>",
+    showarrow = FALSE,
+    font = list(size = 8, color = "#333"),
+    yanchor = "bottom"
+  )
+)
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.4: Final Layout and Configuration"}
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.5: Finalizing the Plot"}
 ```{r}
-# Final layout
-fig <- fig |>
+# 3. Combine with subplot and add annotations + shaded shapes
+fig <- subplot(p1, p2, nrows = 2, shareX = FALSE, titleY = TRUE, heights = c(0.6, 0.4)) |>
   layout(
     title = list(
-      text = "<b>Singapore COE Premiums & Quota Supply (2010-2023)</b>",
+      text = "<b>COE Premiums and Demand-Supply Ratio Over Time</b>",
       x = 0.05,
-      font = list(size = 18, family = "Arial")
+      font = list(size = 18)
     ),
-    margin = list(l = 80, r = 100, t = 80, b = 120, pad = 10),
-    xaxis = list(
-      title = "<b>Bidding Date</b>",
-      type = "date",
-      tickformat = "%b %Y",
-      dtick = "M12",
-      gridcolor = "#f5f5f5",
-      showgrid = TRUE,
-      tickangle = -45,
-      rangeslider = list(visible = TRUE)
-    ),
-    yaxis = list(
-      title = "<b>COE Premium (SGD)</b>",
-      side = "left",
-      tickformat = "$,.0f",
-      gridcolor = "#f5f5f5",
-      zerolinecolor = "#cccccc"
-    ),
-    yaxis2 = list(
-      title = "<b>Demand / Supply Ratio</b>",
-      overlaying = "y",
-      side = "right",
-      showgrid = FALSE,
-      tickformat = "~s",
-      zeroline = TRUE,
-      zerolinecolor = "#cccccc",
-      range = c(0, 3),
-      fixedrange = TRUE  # prevents zoom from messing with range
-    ),
-    # barmode = "stack",
+    margin = list(l = 80, r = 80, t = 80, b = 100),
     hovermode = "x unified",
-    plot_bgcolor = "white",
-    paper_bgcolor = "white",
     legend = list(
-      orientation = "v",
-      x = 1.15,  # Move legend to right side
-      y = 0.5,
-      xanchor = "left",
-      yanchor = "middle",
-      font = list(size = 11),
-      traceorder = "normal"
+      x = 1.05,
+      y = 1,
+      orientation = "v"
     ),
-    annotations = annotations,
-    hoverlabel = list(
-      align = "left",
-      bgcolor = "rgba(255,255,255,0.9)",
-      bordercolor = "rgba(0,0,0,0.1)",
-      font = list(size = 12)
-    )
+    shapes = shapes_list,
+    annotations = annotations_list
   ) |>
   config(
     displayModeBar = TRUE,
     responsive = TRUE,
     scrollZoom = TRUE
   )
-
 fig
-
 ```
 :::
