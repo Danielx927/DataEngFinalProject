@@ -9,51 +9,148 @@ format:
     code-summary: "Show Code"
     df-print: paged
 ---
+::: {.callout-note collapse="true"}
+## 1. Load Necessary Libraries and Excel File
 
-# 1. Load necessary libraries and Excel file
 ```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 library(readxl)
 library(dplyr)
 library(stringr)
 library(knitr)
+library(lubridate)
+library(DT)
 
 file_path <- "data/Results of COE Bidding Exercise.xlsx"
 coe_raw <- read_excel(file_path)
 ```
 
-# 2. Data Cleaning for COE Bidding Exercise
+:::
 
-## Step 2.1 Check for any null (NA) values
-```{r}
-null_summary <- sapply(coe_raw, function(x) sum(is.na(x)))
-null_df <- data.frame(Column = names(null_summary), Null_Count = as.integer(null_summary))
+## 2. Data Cleaning for COE Bidding Exercise
 
-kable(null_df, caption = "Summary of Null Values per Column")
-```
+::: {.callout-tip collapse="true" icon=false title="Step 2.1: Type Conversion with Original Column Names"}
 
-## Step 2.2: Create a new column `Bid to Quota` (Total Bids Received / Quota)
+- Ensures columns like dates and numerics are of the right type for analysis.
+
 ```{r}
 coe_clean <- coe_raw %>%
   mutate(
-    `Bid to Quota` = `Total Bids Received` / `Quota`
+    `Announcement Date` = as.Date(`Announcement Date`),
+    Year = as.integer(Year),
+    Quota = as.numeric(Quota),
+    `Total Bids Received` = as.numeric(`Total Bids Received`),
+    `Number of Successful Bids` = as.numeric(`Number of Successful Bids`),
+    `Quota Premium` = as.numeric(`Quota Premium`)
+  )
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.2: Check for Any Null (NA) Values"}
+
+- Helps identify columns with missing data for further action.
+
+
+```{r}
+null_summary <- sapply(coe_clean, function(x) sum(is.na(x)))
+null_df <- data.frame(Column = names(null_summary), Null_Count = as.integer(null_summary))
+kable(null_df, caption = "Summary of Null Values per Column")
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.3: Remove Duplicates and Problematic Rows"}
+
+- Ensures each row is unique and all critical values are present and valid.
+
+```{r}
+coe_clean <- coe_clean %>%
+  distinct() %>%
+  filter(
+    !is.na(`Announcement Date`),
+    !is.na(Quota),
+    !is.na(`Total Bids Received`),
+    Quota > 0,
+    `Total Bids Received` >= 0
   )
 ```
 
-## Step 2.3: Simplify the `Bidding Exercise` column to "1" or "2"
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.4: Feature Engineering"} 
+
+- Create Bid to Quota column (Total Bids Received / Quota)
+- Simplify Bidding Exercise column to "1" or "2"
+
 ```{r}
 coe_clean <- coe_clean %>%
   mutate(
+    `Bid to Quota` = `Total Bids Received` / Quota,
     `Bidding Exercise` = case_when(
       str_detect(`Bidding Exercise`, regex("First", ignore_case = TRUE)) ~ "1",
       str_detect(`Bidding Exercise`, regex("Second", ignore_case = TRUE)) ~ "2",
-      TRUE ~ `Bidding Exercise`
+      TRUE ~ as.character(`Bidding Exercise`)
     )
   )
 ```
 
-## Step 2.4: View the cleaned data
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.5: Outlier Detection & Data Validation"}
+
+- Chronological Sorting
+- Remove Future dates or Impossible Entries
+
 ```{r}
-print(head(coe_clean))
+coe_clean <- coe_clean %>%
+  arrange(`Announcement Date`) %>%
+  filter(`Announcement Date` <= Sys.Date())
 ```
 
+:::
 
+::: {.callout-tip collapse="true" icon=false title="Step 2.6: Select and Reorder Columns for Output"} 
+
+- Ensures your output table has the desired column names and order.
+
+```{r}
+coe_clean <- coe_clean %>%
+  select(
+    `Bidding Exercise`,
+    `Announcement Date`,
+    Year,
+    Category,
+    Quota,
+    `Quota Premium`,
+    `Total Bids Received`,
+    `Number of Successful Bids`,
+    `Bid to Quota`
+  )
+```
+
+:::
+
+
+### Cleaned Data Preview
+
+```{r}
+DT::datatable(
+  head(coe_clean, 10),
+  options = list(
+    scrollX = TRUE,
+    pageLength = 5,
+    dom = 't',
+    autoWidth = FALSE,
+    columnDefs = list(list(width = '120px', targets = "_all"))
+  ),
+  class = 'compact hover row-border',
+  width = "90%",
+  height = "auto",
+  rownames = FALSE
+) %>%
+  DT::formatStyle(
+    columns = names(coe_clean),
+    fontSize = '90%'
+  )
+```
+```{r}
+write.csv(coe_clean, "data/coe_cleaned.csv", row.names = FALSE)
+```
