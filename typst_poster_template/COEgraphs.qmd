@@ -1,0 +1,269 @@
+---
+title: "COE graphs"
+format: html
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+::: {.callout-note collapse="true"}
+## 1. Load Necessary Libraries and Read Cleaned CSV File
+```{r, echo=TRUE, results='hide'}
+#import libraries, and read csv file
+#| fig-align: center
+#| output: asis
+
+library(tidyverse)
+library(plotly)
+library(lubridate)
+
+# Load data (make sure file is in your working directory)
+coe <- read.csv("data/coe_cleaned.csv")
+head(coe)
+```
+:::
+
+## 2. Data Processing
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.1: Renaming the Columns"}
+```{r}
+# Data processing
+coe_clean <- coe |>
+  filter(Category %in% c(
+    "Cat A (Cars up to 1600cc and 97kW)", 
+    "Cat B (Cars above 1600cc or 97kW)", 
+    "Cat C (Goods vehicles and buses)", 
+    "Cat D (Motorcycles)",
+    "Cat E (Open)")
+    ) |>
+   mutate(
+    Announcement.Date = ymd(Announcement.Date),
+    #bidding_date = ymd(Announcement.Date) + days((Bidding.Exercise - 1) * 14),
+
+    vehicle_class = case_when(
+      Category == "Cat E (Open)" ~ "Cat E: Open",
+      Category == "Cat D (Motorcycles)" ~ "Cat D: Motorcycles",
+      Category == "Cat C (Goods vehicles and buses)" ~ "Cat C: Buses",
+      Category == "Cat B (Cars above 1600cc or 97kW)" ~ "Cat B: >1600cc or >130bhp",
+      Category == "Cat A (Cars up to 1600cc and 97kW)" ~ "Cat A: ≤1600cc or ≤130bhp",
+      TRUE ~ NA_character_
+)
+
+  )
+
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.2: Preparing data for plotting"}
+
+```{r}
+# Prepare data for plotting
+premium_data <- coe_clean |>
+  group_by(Announcement.Date, vehicle_class) |>
+  summarise(premium = mean(Quota.Premium, na.rm = TRUE), .groups = "drop") |>
+  pivot_wider(
+    names_from = vehicle_class,
+    values_from = premium,
+    values_fill = 0
+  ) |>
+  arrange(Announcement.Date) 
+
+# Add missing categories as columns with 0 values
+for (cat in c("Cat A: ≤1600cc or ≤130bhp", 
+              "Cat B: >1600cc or >130bhp",
+              "Cat C: Buses",
+              "Cat D: Motorcycles")) {
+  if (!cat %in% colnames(premium_data)) {
+    premium_data[[cat]] <- 0
+  }
+}
+
+quota_data <- coe_clean |>
+  group_by(Announcement.Date) |>
+  summarise(quota = sum(Quota, na.rm = TRUE), .groups = "drop") |>
+  arrange(Announcement.Date)
+
+# Prevent negative or corrupted quota values
+quota_data <- quota_data |> mutate(quota = pmax(quota, 0))
+
+
+
+# Color palette
+category_colors <- c(
+  "Cat A: ≤1600cc or ≤130bhp" = "#1f77b4",
+  "Cat B: >1600cc or >130bhp" = "#ff7f0e", 
+  "Cat C: Buses" = "#2ca02c",
+  "Cat D: Motorcycles" = "#d62728"
+)
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.3: Creating the Plot"}
+
+```{r}
+# Create plot
+fig <- plot_ly() 
+
+# Add Premium Lines
+for (cat in names(category_colors)) {
+  fig <- fig |>
+    add_trace(
+      data = premium_data,
+      x = ~Announcement.Date,
+      y = as.formula(paste0("~`", cat, "`")),
+      type = "scatter",
+      mode = "lines",
+      name = cat,
+      yaxis = "y",
+      hoverinfo = "text",
+      text = paste0(
+      "<b>", cat, "</b><br>",
+      "Date: ", format(premium_data$Announcement.Date, "%d %b %Y"), "<br>",
+      "Premium: $", format(round(premium_data[[cat]]), big.mark = ",")
+      )
+    )    
+}
+
+# Add quota line
+fig <- fig |>
+  add_trace(
+    data = quota_data,
+    x = ~Announcement.Date,
+    y = ~quota,
+    type = "scatter",
+    mode = "lines",
+    name = "Total Quota (Supply)",
+    yaxis = "y",
+    line = list(color = "#333333", width = 2, dash = "dot"),
+    hoverinfo = "text",
+    text = ~paste0(
+      "<b>Quota Supply</b><br>",
+      "Date: ", format(Announcement.Date, "%d %b %Y"), "<br>",
+      "Quota: ", format(quota, big.mark = ","))
+  )
+
+fig
+
+```
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.4: Adding Annotations"}
+```{r}
+annotations <- list(
+  list(
+    x = as.Date("2020-04-01"),
+    y = 0,
+    yref = "y",
+    text = "<b>COVID-19 Lockdown</b>",
+    showarrow = TRUE,
+    arrowhead = 4,
+    ax = 0,
+    ay = 30,
+    font = list(size = 12, color = "#333333"),
+    bgcolor = "rgba(255,255,255,0.9)",
+    bordercolor = "#cccccc",
+    xanchor = "center"
+  ),
+  list(
+    x = as.Date("2023-05-01"),
+    y = 0,
+    yref = "y",
+    text = "<b>Quota Tightening</b>",
+    showarrow = TRUE,
+    arrowhead = 4,
+    ax = 0,
+    ay = 50,
+    font = list(size = 12, color = "#333333"),
+    bgcolor = "rgba(255,255,255,0.9)",
+    bordercolor = "#cccccc",
+    xanchor = "center"
+  ),
+  list(
+    x = as.Date("2013-03-01"),
+    y = 0,
+    yref = "y",
+    text = "<b>Loan Curbs Introduced</b>",
+    showarrow = TRUE,
+    arrowhead = 4,
+    ax = 0,
+    ay = 50,
+    font = list(size = 12, color = "#333333"),
+    bgcolor = "rgba(255,255,255,0.9)",
+    bordercolor = "#cccccc",
+    xanchor = "center"
+  )
+)
+
+fig
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.4: Final Layout and Configuration"}
+```{r}
+# Final layout
+fig <- fig |>
+  layout(
+    title = list(
+      text = "<b>Singapore COE Premiums & Quota Supply (2010-2023)</b>",
+      x = 0.05,
+      font = list(size = 18, family = "Arial")
+    ),
+    margin = list(l = 80, r = 100, t = 80, b = 120, pad = 10),
+    xaxis = list(
+      title = "<b>Bidding Date</b>",
+      type = "date",
+      tickformat = "%b %Y",
+      dtick = "M12",
+      gridcolor = "#f5f5f5",
+      showgrid = TRUE,
+      tickangle = -45,
+      rangeslider = list(visible = TRUE)
+    ),
+    yaxis = list(
+      title = "<b>COE Premium (SGD)</b>",
+      side = "left",
+      tickformat = "$,.0f",
+      gridcolor = "#f5f5f5",
+      zerolinecolor = "#cccccc"
+    ),
+    yaxis2 = list(
+      title = "<b>Quota (Supply)</b>",
+      overlaying = "y",
+      side = "right",
+      showgrid = FALSE,
+      tickformat = "~s",
+      zeroline = TRUE,
+      zerolinecolor = "#cccccc",
+      range = c(0, 7000),
+      fixedrange = TRUE  # prevents zoom from messing with range
+    ),
+    # barmode = "stack",
+    hovermode = "x unified",
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    legend = list(
+      orientation = "v",
+      x = 1.15,  # Move legend to right side
+      y = 0.5,
+      xanchor = "left",
+      yanchor = "middle",
+      font = list(size = 11),
+      traceorder = "normal"
+    ),
+    annotations = annotations,
+    hoverlabel = list(
+      align = "left",
+      bgcolor = "rgba(255,255,255,0.9)",
+      bordercolor = "rgba(0,0,0,0.1)",
+      font = list(size = 12)
+    )
+  ) |>
+  config(
+    displayModeBar = TRUE,
+    responsive = TRUE,
+    scrollZoom = TRUE
+  )
+
+fig
+
+```
