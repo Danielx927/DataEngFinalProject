@@ -9,20 +9,28 @@ format:
     code-summary: "Show Code"
     df-print: paged
 ---
-::: {.callout-note collapse="true"}
 ## 1. Load Necessary Libraries and Excel File
-
+::: {.callout-note collapse="true" title="tidyverse, lubridate, readxl, dplyr, stringr, knitr, DT, plotly"}
 ```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 library(readxl)
 library(dplyr)
 library(stringr)
 library(knitr)
-library(lubridate)
 library(DT)
-
+library(tidyverse)
+library(lubridate)
+library(plotly)
+# Load the Excel file
 file_path <- "data/Results of COE Bidding Exercise.xlsx"
 coe_raw <- read_excel(file_path)
 ```
+| **Bidding Exercise**                  | **Announcement Date** | **Year** | **Category**                             | **Quota** | **Quota Premium** | **Total Bids Received** | **Number of Successful Bids** |
+|--------------------------------------|------------------------|----------|------------------------------------------|-----------|--------------------|--------------------------|-------------------------------|
+| June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat A (Cars up to 1600cc and 97kW)        | 1254      | 98124              | 1647                     | 1253                          |
+| June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat B (Cars above 1600cc or 97kW)         | 784       | 116670             | 1163                     | 781                           |
+| June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat C (Goods vehicles and buses)          | 271       | 65000              | 393                      | 270                           |
+| June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat D (Motorcycles)                       | 535       | 8600               | 605                      | 528                           |
+| June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat E (Open)                              | 223       | 116889             | 399                      | 214                           |
 
 :::
 
@@ -30,10 +38,22 @@ coe_raw <- read_excel(file_path)
 
 ::: {.callout-tip collapse="true" icon=false title="Step 2.1: Type Conversion with Original Column Names"}
 
-- Ensures columns like dates and numerics are of the right type for analysis.
+Change the data types of the columns to ensure they are in the correct format for analysis.
+
+1. Announcement Date: Convert to Date
+
+2. Year: Convert to Integer
+
+3. Quota: Convert to Numeric
+
+4. Total Bids Received: Convert to Numeric
+
+5. Number of Successful Bids: Convert to Numeric
+
+6. Quota Premium: Convert to Numeric
 
 ```{r}
-coe_clean <- coe_raw %>%
+coe_clean <- coe_raw |>
   mutate(
     `Announcement Date` = as.Date(`Announcement Date`),
     Year = as.integer(Year),
@@ -47,8 +67,7 @@ coe_clean <- coe_raw %>%
 
 ::: {.callout-tip collapse="true" icon=false title="Step 2.2: Check for Any Null (NA) Values"}
 
-- Helps identify columns with missing data for further action.
-
+**Helps identify columns with missing data for further action.**
 
 ```{r}
 null_summary <- sapply(coe_clean, function(x) sum(is.na(x)))
@@ -58,12 +77,11 @@ kable(null_df, caption = "Summary of Null Values per Column")
 :::
 
 ::: {.callout-tip collapse="true" icon=false title="Step 2.3: Remove Duplicates and Problematic Rows"}
-
-- Ensures each row is unique and all critical values are present and valid.
+**Ensure each row is unique and all critical values are present and valid.**
 
 ```{r}
-coe_clean <- coe_clean %>%
-  distinct() %>%
+coe_clean <- coe_clean |>
+  distinct() |>
   filter(
     !is.na(`Announcement Date`),
     !is.na(Quota),
@@ -72,16 +90,58 @@ coe_clean <- coe_clean %>%
     `Total Bids Received` >= 0
   )
 ```
-
 :::
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.4: Feature Engineering"} 
+::: {.callout-tip collapse="true" icon=false title="Step 2.1: Renaming Vehicle Category Values"}
+| *Original `Category` Values*      |  **Updated `Category` Values** |
+| --------------------------------- | -------------------------------|
+|Cat A (Cars up to 1600cc and 97kW) | Cat A: ≤1600cc or ≤130bhp      |
+|Cat B (Cars above 1600cc or 97kW)  | Cat B: >1600cc or >130bhp      |
+|Cat C (Goods vehicles and buses)   | Cat C: Buses                   |
+|Cat D (Motorcycles)                | Cat D: Motorcycles             |
+|Cat E (Open)                       | Cat E: Open                    |
+```{r}
+# Clean and Prepare Data
+coe_clean <- coe_clean |>
+  filter(Category %in% c(
+    "Cat A (Cars up to 1600cc and 97kW)", 
+    "Cat B (Cars above 1600cc or 97kW)", 
+    "Cat C (Goods vehicles and buses)", 
+    "Cat D (Motorcycles)",
+    "Cat E (Open)")
+    ) |>
+   mutate(
+    `Announcement Date` = ymd(`Announcement Date`),
+    vehicle_class = case_when(
+      Category == "Cat E (Open)" ~ "Cat E: Open",
+      Category == "Cat D (Motorcycles)" ~ "Cat D: Motorcycles",
+      Category == "Cat C (Goods vehicles and buses)" ~ "Cat C: Buses",
+      Category == "Cat B (Cars above 1600cc or 97kW)" ~ "Cat B: >1600cc or >130bhp",
+      Category == "Cat A (Cars up to 1600cc and 97kW)" ~ "Cat A: ≤1600cc or ≤130bhp",
+      TRUE ~ NA_character_
+    )
+  )
 
-- Create Bid to Quota column (Total Bids Received / Quota)
-- Simplify Bidding Exercise column to "1" or "2"
+# Color palette
+category_colors <- c(
+  "Cat A: ≤1600cc or ≤130bhp" = "#1f77b4",
+  "Cat B: >1600cc or >130bhp" = "#ff7f0e", 
+  "Cat C: Buses" = "#2ca02c",
+  "Cat D: Motorcycles" = "#d62728"
+)
+  
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.4: Renaming/ Adding New Columns"} 
+| **Column Changes **   |  **Original **            | **Values after changes**  |
+| --------------------- | ------------------------- | ------------------------- |
+| `Bid to Quota `       | Column did not exist      | Range from 1 to 3         |
+| `Bidding Exercise`    | Category Clarification    | "1" or "2"                |
+| `Month_Year`          | Column did not exist      |"Jul 2024", "Oct 2022" etc.|
 
 ```{r}
-coe_clean <- coe_clean %>%
+coe_clean <- coe_clean |>
   mutate(
     `Bid to Quota` = `Total Bids Received` / Quota,
     `Bidding Exercise` = case_when(
@@ -90,47 +150,57 @@ coe_clean <- coe_clean %>%
       TRUE ~ as.character(`Bidding Exercise`)
     )
   )
+
+coe_clean <- coe_clean |>
+  mutate(
+    Month_Year = format(`Announcement Date`, "%b %Y")  # "Jul 2024"
+  )
+
 ```
+
 
 :::
 
 ::: {.callout-tip collapse="true" icon=false title="Step 2.5: Outlier Detection & Data Validation"}
 
-- Chronological Sorting
-- Remove Future dates or Impossible Entries
+1. Chronological Sorting
+2. Remove Future dates or Impossible Entries
 
 ```{r}
-coe_clean <- coe_clean %>%
-  arrange(`Announcement Date`) %>%
+coe_clean <- coe_clean |>
+  arrange(`Announcement Date`) |>
   filter(`Announcement Date` <= Sys.Date())
 ```
 
 :::
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.6: Select and Reorder Columns for Output"} 
+::: {.callout-tip collapse="true" icon=false title="Step 2.6: Rename and Keep Relevant Columns"} 
 
-- Ensures your output table has the desired column names and order.
+*Rename and Keep only the relevant columns for further analysis and visualization.*
+
+| **Columns Renamed** | **New Column Names** |
+| ------------------- | --------------------- |
+| `Bidding Exercise` | `bidding_exercise`   |
+| `Category`         | `category`           |
+| `Month_Year`      | `month_year`         |
+| `Quota Premium`    | `quota_premium`      |
+| `Bid to Quota`     | `bid_to_quota`       |
 
 ```{r}
-coe_clean <- coe_clean %>%
+
+coe_clean <- coe_clean |>
   select(
-    `Bidding Exercise`,
-    `Announcement Date`,
-    Year,
-    Category,
-    Quota,
-    `Quota Premium`,
-    `Total Bids Received`,
-    `Number of Successful Bids`,
-    `Bid to Quota`
+    bidding_exercise = `Bidding Exercise`,
+    category = `Category`,
+    month_year = `Month_Year`,
+    quota_premium = `Quota Premium`,
+    bid_to_quota = `Bid to Quota`
   )
 ```
 
 :::
 
-
-### Cleaned Data Preview
-
+Cleaned Data Preview
 ```{r}
 DT::datatable(
   head(coe_clean, 10),
@@ -145,12 +215,70 @@ DT::datatable(
   width = "90%",
   height = "auto",
   rownames = FALSE
-) %>%
+) |>
   DT::formatStyle(
     columns = names(coe_clean),
     fontSize = '90%'
   )
 ```
+
 ```{r}
 write.csv(coe_clean, "data/coe_cleaned.csv", row.names = FALSE)
 ```
+
+## Interactive Visualizations
+
+::: {.callout-tip collapse="true" icon=false title="Step 2.1: Renaming the Columns"}
+```{r}
+df <- read.csv("data/coe_cleaned.csv")
+
+category_colors <- c(
+  "Cat A (Cars up to 1600cc and 97kW)" = "#1f77b4",
+  "Cat B (Cars above 1600cc or 97kW)" = "#ff7f0e",
+  "Cat C (Goods vehicles and buses)" = "#2ca02c",
+  "Cat D (Motorcycles)" = "#d62728"
+)
+
+df <- df |>
+  filter(!grepl("Open", category))
+
+p <- plot_ly()
+
+for (cat in names(category_colors)) {
+  cat_data <- df |> filter(category == cat)
+  p <- p |> add_trace(
+    data = cat_data,
+    x = ~`month_year`,
+    y = ~`quota_premium`,
+    type = 'scatter',
+    mode = 'lines+markers',
+    name = paste(cat, "Premium"),
+    line = list(color = category_colors[cat]),
+    yaxis = "y1"
+  )
+  
+  p <- p |> add_trace(
+    data = cat_data,
+    x = ~`month_year`,
+    y = ~`bid_to_quota`,
+    type = 'scatter',
+    mode = 'lines+markers',
+    name = paste(cat, "Bid/Quota Ratio"),
+    line = list(color = category_colors[cat], dash = "dot"),
+    yaxis = "y2"
+  )
+}
+
+p <- p |> layout(
+  title = "<b>COE Premiums and Bid-to-Quota Ratio Over Time</b>",
+  xaxis = list(title = "<b>Bidding Month</b>", tickangle = 45, rangeslider = list(visible = TRUE), type = "category"),
+  yaxis = list(title = "<b>Quota Premium (SGD)</b>", side = "left", tickformat = "$,.0f"),
+  yaxis2 = list(title = "<b>Bid-to-Quota Ratio</b>", overlaying = "y", side = "right", tickformat = ".2f"),
+  legend = list(orientation = "h", y = -0.3, x = 0.5, xanchor = "center", yanchor = "top"),
+  hovermode = "x unified",
+  margin = list(t = 80, b = 150)
+)
+
+p
+```
+:::
