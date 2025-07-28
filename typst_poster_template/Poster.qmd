@@ -17,8 +17,8 @@ The Certificate of Entitlement (COE) system, introduced in 1990, regulates Singa
 
 # Previous Visualisation
 
-![Original Visualisation from CNA](./images/original_chart.jpg)
-
+![Visualisation from CNA](./images/original_chart.jpg)
+[CNA article link:](https://www.channelnewsasia.com/singapore/coe-prices-car-premiums-deep-dive-does-bidding-system-need-update-3936056)
 # Strengths
 
 | `Index`       | `Strength`                | `Elaboration`                                                                                                   |
@@ -56,17 +56,26 @@ The Certificate of Entitlement (COE) system, introduced in 1990, regulates Singa
 
 ## Data Source:
 
-- The data taken from the [CNA article](https://www.channelnewsasia.com/singapore/coe-prices-car-premiums-deep-dive-does-bidding-system-need-update-3936056) has the following columns:
-  1. **Bidding Exercise**: Indicates whether it is the first or second bid of the month.
-  2. **Announcement Date**: The date when the COE results are announced.
-  3. **Year**: The year of the bidding exercise.
-  4. **Category**: The COE category (e.g., Cat A, Cat B).
-  5. **Quota**: The number of COEs available for bidding.
-  6. **Quota Premium**: The premium amount for the quota.
-  7. **Total Bids Received**: The total number of bids received for that category.
-  8. **Number of Successful Bids**: The number of successful bids for that category.
+1. The COE data source has the following columns:
+  a. **Bidding Exercise**: Indicates whether it is the first or second bid of the month.
+  b. **Announcement Date**: The date when the COE results are announced.
+  c. **Year**: The year of the bidding exercise.
+  d. **Category**: The COE category (e.g., Cat A, Cat B).
+  e. **Quota**: The number of COEs available for bidding.
+  f. **Quota Premium**: The premium amount for the quota.
+  g. **Total Bids Received**: The total number of bids received for that category.
+  h. **Number of Successful Bids**: The number of successful bids for that category.
+  
+  
+The COE data spreadsheet is taken from [SGCharts](https://coe.sgcharts.com/). 
+It is mentioned in fine print that their data is sourced from the Land Transport Authority (LTA).
+The data spreadsheet, can be viewed in this [`Google Sheet`](https://docs.google.com/spreadsheets/d/1Ma8dm_rdtdfNp8ONUG5ykFHwrEg1GFC3ObOMualMVBM/edit?gid=0#gid=0).
 
-You can visit the [`Google Sheet`](https://docs.google.com/spreadsheets/d/1Ma8dm_rdtdfNp8ONUG5ykFHwrEg1GFC3ObOMualMVBM/edit?gid=0#gid=0) for more information.
+2. The CPI data source has the following columns:
+  a. **Data Series**: Indicates Month and Year e.g. "2023 Jan".
+  b. **All Items**: The Consumer Price Index of All Items for that month and year.
+
+The CPI data spreadsheet is taken from the [Department of Statistics Singapore](https://tablebuilder.singstat.gov.sg/table/TS/M213752).
 
 ## Data Wrangling:
 - These were the changes made to the dataset

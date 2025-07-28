@@ -1,29 +1,47 @@
 ---
-title: "COE Data Cleaning"
+title: "Data Cleaning and Visualisation of COE and CPI Data"
 format: 
   html:
+    css: styles.css
     theme: flatly
     toc: true
     toc-depth: 2
     code-fold: true
     code-summary: "Show Code"
     df-print: paged
+    
 ---
-## 1. Load Necessary Libraries and Excel File
-::: {.callout-note collapse="true" title="tidyverse, lubridate, readxl, dplyr, stringr, knitr, DT, plotly"}
+```{css, echo=FALSE}
+.callout-tip {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+```
+
+# 1. Load Necessary Libraries and Excel File
+::: {.callout-note collapse="true" title="COE and CPI data"}
 ```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 library(readxl)
-library(dplyr)
 library(stringr)
 library(knitr)
 library(DT)
+library(dplyr)
 library(tidyverse)
 library(lubridate)
 library(plotly)
-# Load the Excel file
+# Load the COE data
 file_path <- "data/Results of COE Bidding Exercise.xlsx"
 coe_raw <- read_excel(file_path)
+
+# Load CPI data from specific rows (row 11 = headers, row 12 = values)
+cpi_raw <- read_excel("data/Monthly CPI.xlsx", skip = 10, n_max = 2, col_names = FALSE)
 ```
+*COE data preview*
+
 | **Bidding Exercise**                  | **Announcement Date** | **Year** | **Category**                             | **Quota** | **Quota Premium** | **Total Bids Received** | **Number of Successful Bids** |
 |--------------------------------------|------------------------|----------|------------------------------------------|-----------|--------------------|--------------------------|-------------------------------|
 | June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat A (Cars up to 1600cc and 97kW)        | 1254      | 98124              | 1647                     | 1253                          |
@@ -32,40 +50,120 @@ coe_raw <- read_excel(file_path)
 | June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat D (Motorcycles)                       | 535       | 8600               | 605                      | 528                           |
 | June 2025 Second Open Bidding Exercise | 2025-06-18             | 2025     | Cat E (Open)                              | 223       | 116889             | 399                      | 214                           |
 
+*CPI data preview*
+
+| **Data Series** | **2025 Mar** | **2025 Apr** | **2025 May** | **2025 Jun** |
+|----------------|--------------|--------------|--------------|--------------|
+| All Items      | 100.379      | 100.796      | 100.757      | 100.680      |
+
 :::
 
-## 2. Data Cleaning for COE Bidding Exercise
+# 2. Data Cleaning
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.1: Type Conversion with Original Column Names"}
+## 2.a. COE Data
+::: {.callout-tip collapse="true" icon=false title="2.a.i: Cleaning Category Names"}
+| *Original `Category` Values*      |  *Updated `Category` Values* |
+| --------------------------------- | -------------------------------|
+|Cat A (Cars up to 1600cc and 97kW) | Cat A: ≤1600cc or ≤130bhp      |
+|Cat B (Cars above 1600cc or 97kW)  | Cat B: >1600cc or >130bhp      |
+|Cat C (Goods vehicles and buses)   | Cat C: Buses                   |
+|Cat D (Motorcycles)                | Cat D: Motorcycles             |
 
-Change the data types of the columns to ensure they are in the correct format for analysis.
+*`Cat E (Open)` was dropped since it is generally more volatile and does not follow the same trends as the other categories.*
+```{r}
+# Clean and Prepare Data
+coe_clean <- coe_raw |>
+  filter(Category != "Cat E (Open)")
 
-1. Announcement Date: Convert to Date
+coe_clean <- coe_clean |>
+  mutate(
+    Category = case_when(
+      Category == "Cat D (Motorcycles)" ~ "Cat D: Motorcycles",
+      Category == "Cat C (Goods vehicles and buses)" ~ "Cat C: Buses",
+      Category == "Cat B (Cars above 1600cc or 97kW)" ~ "Cat B: >1600cc or >97kW",
+      Category == "Cat A (Cars up to 1600cc and 97kW)" ~ "Cat A: ≤1600cc or ≤97kW",
+      TRUE ~ Category  # fallback to keep existing
+    )
+  )
 
-2. Year: Convert to Integer
+  
+```
+:::
 
-3. Quota: Convert to Numeric
-
-4. Total Bids Received: Convert to Numeric
-
-5. Number of Successful Bids: Convert to Numeric
-
-6. Quota Premium: Convert to Numeric
+::: {.callout-tip collapse="true" icon=false title="2.a.ii: Add Month Column and Change Bidding Exercise Values"} 
+| *Column Changes*      |  *Original*                               | *Values after changes*    |
+| --------------------- | ----------------------------------------- | ------------------------- |
+| `Bidding Exercise`    | June 2025 Second Open Bidding Exercise    | "1" or "2"                |
+| `Month`               | Column did not exist                      |"Jul", "Oct" etc.          |
 
 ```{r}
-coe_clean <- coe_raw |>
+coe_clean <- coe_clean |>
   mutate(
-    `Announcement Date` = as.Date(`Announcement Date`),
-    Year = as.integer(Year),
-    Quota = as.numeric(Quota),
-    `Total Bids Received` = as.numeric(`Total Bids Received`),
-    `Number of Successful Bids` = as.numeric(`Number of Successful Bids`),
-    `Quota Premium` = as.numeric(`Quota Premium`)
+    `Bidding Exercise` = case_when(
+      str_detect(`Bidding Exercise`, regex("First", ignore_case = TRUE)) ~ "1",
+      str_detect(`Bidding Exercise`, regex("Second", ignore_case = TRUE)) ~ "2",
+      TRUE ~ as.character(`Bidding Exercise`)
+    )
+  )
+
+coe_clean <- coe_clean |>
+  mutate(
+    Month = format(`Announcement Date`, "%b")
+  )
+
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="2.a.iii: Rename and Keep Relevant Columns"} 
+
+| **Columns Renamed** | **New Column Names** |
+| ------------------- | -------------------- |
+| `Bidding Exercise`  | `bidding_exercise`   |
+| `Category`          | `category`           |
+| `Month`             | `month`              |
+| `Year`              | `year`               |
+| `Quota Premium`     | `quota_premium`      |
+
+```{r}
+
+coe_clean <- coe_clean |>
+  select(
+    bidding_exercise = `Bidding Exercise`,
+    category = `Category`,
+    month = `Month`,
+    year = `Year`,
+    quota_premium = `Quota Premium`,
   )
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.2: Check for Any Null (NA) Values"}
+::: {.callout-tip collapse="true" icon=false title="2.a.iv: Type Conversion"}
+
+Change the data types of the columns to ensure they are in the correct format for analysis.
+
+1. `bidding_exercise`: Convert to Character
+
+2. `category`: Convert to Character
+
+3. `month`: Convert to Character
+
+4. `year`: Convert to Integer
+
+5. `quota_premium`: Convert to Numeric
+
+```{r}
+coe_clean <- coe_clean |>
+  mutate(
+    `bidding_exercise` = as.character(`bidding_exercise`),
+    `category` = as.character(`category`),
+    `month` = as.character(`month`),
+    `year` = as.integer(`year`),
+    `quota_premium` = as.numeric(`quota_premium`)
+  )
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="2.a.v: Check for Any Null (NA) Values"}
 
 **Helps identify columns with missing data for further action.**
 
@@ -76,131 +174,7 @@ kable(null_df, caption = "Summary of Null Values per Column")
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.3: Remove Duplicates and Problematic Rows"}
-**Ensure each row is unique and all critical values are present and valid.**
-
-```{r}
-coe_clean <- coe_clean |>
-  distinct() |>
-  filter(
-    !is.na(`Announcement Date`),
-    !is.na(Quota),
-    !is.na(`Total Bids Received`),
-    Quota > 0,
-    `Total Bids Received` >= 0
-  )
-```
-:::
-
-::: {.callout-tip collapse="true" icon=false title="Step 2.1: Renaming Vehicle Category Values"}
-| *Original `Category` Values*      |  **Updated `Category` Values** |
-| --------------------------------- | -------------------------------|
-|Cat A (Cars up to 1600cc and 97kW) | Cat A: ≤1600cc or ≤130bhp      |
-|Cat B (Cars above 1600cc or 97kW)  | Cat B: >1600cc or >130bhp      |
-|Cat C (Goods vehicles and buses)   | Cat C: Buses                   |
-|Cat D (Motorcycles)                | Cat D: Motorcycles             |
-|Cat E (Open)                       | Cat E: Open                    |
-```{r}
-# Clean and Prepare Data
-coe_clean <- coe_clean |>
-  filter(Category %in% c(
-    "Cat A (Cars up to 1600cc and 97kW)", 
-    "Cat B (Cars above 1600cc or 97kW)", 
-    "Cat C (Goods vehicles and buses)", 
-    "Cat D (Motorcycles)",
-    "Cat E (Open)")
-    ) |>
-   mutate(
-    `Announcement Date` = ymd(`Announcement Date`),
-    vehicle_class = case_when(
-      Category == "Cat E (Open)" ~ "Cat E: Open",
-      Category == "Cat D (Motorcycles)" ~ "Cat D: Motorcycles",
-      Category == "Cat C (Goods vehicles and buses)" ~ "Cat C: Buses",
-      Category == "Cat B (Cars above 1600cc or 97kW)" ~ "Cat B: >1600cc or >130bhp",
-      Category == "Cat A (Cars up to 1600cc and 97kW)" ~ "Cat A: ≤1600cc or ≤130bhp",
-      TRUE ~ NA_character_
-    )
-  )
-
-# Color palette
-category_colors <- c(
-  "Cat A: ≤1600cc or ≤130bhp" = "#1f77b4",
-  "Cat B: >1600cc or >130bhp" = "#ff7f0e", 
-  "Cat C: Buses" = "#2ca02c",
-  "Cat D: Motorcycles" = "#d62728"
-)
-  
-```
-:::
-
-::: {.callout-tip collapse="true" icon=false title="Step 2.4: Renaming/ Adding New Columns"} 
-| **Column Changes **   |  **Original **            | **Values after changes**  |
-| --------------------- | ------------------------- | ------------------------- |
-| `Bid to Quota `       | Column did not exist      | Range from 1 to 3         |
-| `Bidding Exercise`    | Category Clarification    | "1" or "2"                |
-| `Month_Year`          | Column did not exist      |"Jul 2024", "Oct 2022" etc.|
-
-```{r}
-coe_clean <- coe_clean |>
-  mutate(
-    `Bid to Quota` = `Total Bids Received` / Quota,
-    `Bidding Exercise` = case_when(
-      str_detect(`Bidding Exercise`, regex("First", ignore_case = TRUE)) ~ "1",
-      str_detect(`Bidding Exercise`, regex("Second", ignore_case = TRUE)) ~ "2",
-      TRUE ~ as.character(`Bidding Exercise`)
-    )
-  )
-
-coe_clean <- coe_clean |>
-  mutate(
-    Month_Year = format(`Announcement Date`, "%b %Y")  # "Jul 2024"
-  )
-
-```
-
-
-:::
-
-::: {.callout-tip collapse="true" icon=false title="Step 2.5: Outlier Detection & Data Validation"}
-
-1. Chronological Sorting
-2. Remove Future dates or Impossible Entries
-
-```{r}
-coe_clean <- coe_clean |>
-  arrange(`Announcement Date`) |>
-  filter(`Announcement Date` <= Sys.Date())
-```
-
-:::
-
-::: {.callout-tip collapse="true" icon=false title="Step 2.6: Rename and Keep Relevant Columns"} 
-
-*Rename and Keep only the relevant columns for further analysis and visualization.*
-
-| **Columns Renamed** | **New Column Names** |
-| ------------------- | --------------------- |
-| `Bidding Exercise` | `bidding_exercise`   |
-| `Category`         | `category`           |
-| `Month_Year`      | `month_year`         |
-| `Quota Premium`    | `quota_premium`      |
-| `Bid to Quota`     | `bid_to_quota`       |
-
-```{r}
-
-coe_clean <- coe_clean |>
-  select(
-    bidding_exercise = `Bidding Exercise`,
-    category = `Category`,
-    month_year = `Month_Year`,
-    quota_premium = `Quota Premium`,
-    bid_to_quota = `Bid to Quota`
-  )
-```
-
-:::
-
-Cleaned Data Preview
+*Cleaned COE Data Preview*
 ```{r}
 DT::datatable(
   head(coe_clean, 10),
@@ -223,62 +197,468 @@ DT::datatable(
 ```
 
 ```{r}
-write.csv(coe_clean, "data/coe_cleaned.csv", row.names = FALSE)
+write.csv(coe_clean, "data/coe_clean.csv", row.names = FALSE)
 ```
 
-## Interactive Visualizations
+## 2.b. CPI data
+::: {.callout-tip collapse="true" icon=false title="2.b.i: Transpose Data and Change Headers"}
 
-::: {.callout-tip collapse="true" icon=false title="Step 2.1: Renaming the Columns"}
-```{r}
-df <- read.csv("data/coe_cleaned.csv")
+| **data\_series** | **cpi** | **month** | **year** |
+| ---------------- | ------- | --------- | -------- |
+| 2025 Jan         | 100.477 | Jan       | 2025     |
+| 2025 Feb         | 100.546 | Feb       | 2025     |
+| 2025 Mar         | 100.379 | Mar       | 2025     |
+| 2025 Apr         | 100.796 | Apr       | 2025     |
+| 2025 May         | 100.757 | May       | 2025     |
+| 2025 Jun         | 100.680 | Jun       | 2025     |
 
+```{r, message=FALSE, warning=FALSE}
+
+# Transpose data and clean headers
+cpi_clean <- cpi_raw |>
+  t() |>
+  as.data.frame() |>
+  setNames(c("data_series", "cpi")) |>
+  slice(-1) |>  # Remove "All Items" header
+  filter(!is.na(cpi)) |>
+  mutate(
+    data_series = str_trim(as.character(data_series)),
+    cpi = as.numeric(as.character(cpi)),
+    year = word(data_series, 1),             # extract year
+    month = word(data_series, 2),            # extract month (abbrev like Jan, Feb)
+    month = str_to_title(month)              # ensure capitalization like "Jan"
+  ) |>
+  select(data_series, cpi, month, year)
+
+
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="2.b.ii: Create `base cpi` Column, where base year is 2024"}
+```{r, message=FALSE, warning=FALSE}
+# Calculate average CPI for 2024 since it is the base year
+base_cpi <- cpi_clean |>
+  filter(year == 2024) |>
+  summarise(avg_cpi = mean(cpi, na.rm = TRUE)) |>
+  pull(avg_cpi)
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="2.b.iii: Drop `data series` Column"}
+```{r, message=FALSE, warning=FALSE}
+# Drop unnecessary columns
+cpi_clean <- cpi_clean |>
+  select(-data_series)
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="2.b.iv: Type Conversion"}
+Change the data types of the columns to ensure they are in the correct format for analysis.
+```{r, message=FALSE, warning=FALSE}
+cpi_clean <- cpi_clean |>
+  mutate(
+    month = as.character(month),
+    year = as.integer(year),
+    cpi = as.numeric(cpi),
+    base_cpi = as.numeric(base_cpi)
+  )
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="2.b.v: Check for Any Null (NA) Values"}
+**Helps identify columns with missing data for further action.**
+```{r, message=FALSE, warning=FALSE}
+# Check for null values
+null_summary_cpi <- sapply(cpi_clean, function(x) sum(is.na(x)))
+null_df_cpi <- data.frame(Column = names(null_summary_cpi), Null_Count = as.integer(null_summary_cpi))
+kable(null_df_cpi, caption = "Summary of Null Values in CPI Data")
+```
+:::
+
+*Cleaned CPI Data Preview*
+```{r, message=FALSE, warning=FALSE}
+DT::datatable(
+  head(cpi_clean, 10),
+  options = list(
+    scrollX = TRUE,
+    pageLength = 5,
+    dom = 't',
+    autoWidth = FALSE,
+    columnDefs = list(list(width = '120px', targets = "_all"))
+  ),
+  class = 'compact hover row-border',
+  width = "90%",
+  height = "auto",
+  rownames = FALSE
+) |>
+  DT::formatStyle(
+    columns = names(cpi_clean),
+    fontSize = '90%'
+  )
+```
+
+```{r, message=FALSE, warning=FALSE}
+# Save cleaned CPI data
+write.csv(cpi_clean, "data/cpi_clean.csv", row.names = FALSE)
+```
+
+# 3. Merge COE and CPI Data
+::: {.callout-tip collapse="true" icon=false title="3.1 Merge COE and CPI Data"}
+
+**Merge is done using a left join on month and year columns.**
+```{r, message=FALSE, warning=FALSE}
+# Perform left join
+merged_data <- left_join(coe_clean, cpi_clean, by = c("month", "year"))
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="3.2: Create Adjusted Quota Premium Column"}
+*Create a new column `adjusted_premium` that adjusts the quota premium based on the CPI. The formula is: adjusted_premium = `quota_premium` / (`cpi` / `base_cpi`)*
+```{r, message=FALSE, warning=FALSE}
+# Create real quota premium
+merged_data <- merged_data |> mutate(
+  adjusted_premium = quota_premium / (cpi / base_cpi)
+)
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="3.3: Keep Relevant Columns"}
+*Dropped cpi and base_cpi columns as they are not needed for the final analysis.*
+```{r, message=FALSE, warning=FALSE}
+# Drop unnecessary columns
+merged_data <- merged_data |>
+  select(
+    bidding_exercise,
+    category,
+    month,
+    year,
+    quota_premium,
+    adjusted_premium
+  )
+```
+:::
+
+::: {.callout-tip collapse="true" icon=false title="Preview Final Merged Data"}
+```{r, message=FALSE, warning=FALSE}
+datatable(merged_data, options = list(pageLength = 10), caption = "Merged COE and CPI Data")
+# Save merged data
+write_csv(merged_data, "data/merged.csv")
+```
+:::
+
+# 4. Plot Interactive Visualisation
+::: {.callout-tip collapse="false" icon=false title="2.1: Renaming the Columns"}
+```{r, message=FALSE, warning=FALSE}
+
+# Load cleaned data
+merged <- read_csv("data/merged.csv")
+
+# Reconstruct Date and labels
+merged <- merged |> mutate(
+  date = parse_date_time(paste(month, year), orders = "b Y"),
+  date = if_else(bidding_exercise == "2", date + days(10), date),
+  bid_label = bidding_exercise,
+  month_abbr = month,
+  year_full = as.character(year),
+  tick_label = ifelse(month_abbr == "Jan",
+                      paste0(month_abbr, " ", year_full),
+                      month_abbr)
+)
 category_colors <- c(
-  "Cat A (Cars up to 1600cc and 97kW)" = "#1f77b4",
-  "Cat B (Cars above 1600cc or 97kW)" = "#ff7f0e",
-  "Cat C (Goods vehicles and buses)" = "#2ca02c",
-  "Cat D (Motorcycles)" = "#d62728"
+  "Cat A: ≤1600cc or ≤97kW" = "#2CA02C",   
+  "Cat B: >1600cc or >97kW" = "#FF7F0E",   
+  "Cat C: Buses" = "#17BECF",              
+  "Cat D: Motorcycles" = "#E377C2"         
 )
 
-df <- df |>
-  filter(!grepl("Open", category))
+# Define order from lowest to highest
+category_order <- c("Cat D: Motorcycles", "Cat C: Buses", "Cat A: ≤1600cc or ≤97kW", "Cat B: >1600cc or >97kW")
 
-p <- plot_ly()
+# Add dropdown filters for COE categories
+category_levels <- levels(factor(merged$category, levels = category_order))
 
-for (cat in names(category_colors)) {
-  cat_data <- df |> filter(category == cat)
-  p <- p |> add_trace(
-    data = cat_data,
-    x = ~`month_year`,
-    y = ~`quota_premium`,
-    type = 'scatter',
-    mode = 'lines+markers',
-    name = paste(cat, "Premium"),
-    line = list(color = category_colors[cat]),
-    yaxis = "y1"
+# Create one button per category
+buttons <- lapply(category_levels, function(cat) {
+  list(
+    method = "update",
+    args = list(
+      list(visible = c(
+        rep(TRUE, length(category_levels)),     # lines
+        rep(TRUE, length(category_levels))      # bars
+      ) & rep(category_levels == cat, 2)),
+      list(title = paste("Category:", cat), "xaxis.autorange" = TRUE) 
+    ),
+    label = cat
   )
-  
-  p <- p |> add_trace(
-    data = cat_data,
-    x = ~`month_year`,
-    y = ~`bid_to_quota`,
-    type = 'scatter',
-    mode = 'lines+markers',
-    name = paste(cat, "Bid/Quota Ratio"),
-    line = list(color = category_colors[cat], dash = "dot"),
-    yaxis = "y2"
+})
+
+# Add 'All' button at the beginning
+buttons <- c(
+  list(list(
+    method = "update",
+    args = list(
+      list(visible = rep(TRUE, length(category_levels) * 2)),
+      list(title = "All Categories", "xaxis.autorange" = TRUE)
+    ),
+    label = "All"
+  )),
+  buttons
+)
+
+
+
+# Define event periods of interest
+event <- tibble::tibble(
+  event = c("2008 Financial Crisis", "Panic Bidding", "COVID‑19 Suspension", "Quota Injection", "Quota Injection"),
+  start = as.Date(c("2007-12-01", "2010-01-01", "2020-04-07", "2023-11-01", "2025-02-01")),
+  end   = as.Date(c("2009-06-30", "2010-12-30", "2020-05-30", "2024-01-30","2025-06-30")),
+  color = c("rgba(255,0,0,0.2)", "rgba(255,165,0,0.1)", "rgba(0,0,255,0.1)",
+            "rgba(0,255,0,0.1)", "rgba(255,165,0,0.1)"),
+  label = c("2008 Financial Crisis", "Panic Bidding", "COVID‑19 Suspension", "Quota Injection", "Quota Injection")
+)
+
+# Create month and year columns for annotations
+month_centers <- merged |>
+  group_by(month, year) |>
+  summarise(
+    center_date = mean(date),
+    .groups = "drop"
+  )
+
+
+# Compute default view range: last 10 years
+max_date <- max(merged$date, na.rm = TRUE)
+min_date <- max_date %m-% years(1)
+
+# Month annotations per month/year
+month_annots <- merged |>
+  group_by(month, year = year(date)) |>
+  summarise(mid_date = mean(date), .groups = "drop") |>
+  filter(!is.na(mid_date))
+
+# Build interactive plot
+p <- plot_ly(data = merged, type = 'scatter', mode = 'lines') |>
+  add_trace(
+    x = ~date,
+    y = ~quota_premium,
+    color = ~category,
+    colors = "category_colors",
+    hoverinfo = "text",
+    text = ~paste(
+      "Category:", category,
+      paste0("<br>Month-Year: ", month, " ", year),
+      paste0("<br>Bidding Exercise: ", bidding_exercise),
+      paste0("<br>Quota Premium: $", formatC(quota_premium, format = "f", big.mark = ",", digits = 0)),
+      paste0("<br>Adjusted Premium: $", formatC(adjusted_premium, format = "f", big.mark = ",", digits = 0))
+    )
+  )
+
+
+# Sort and calculate difference from previous
+adjusted_diff <- merged |>
+  mutate(category = factor(category, levels = category_order)) |>
+  arrange(date, category) |>
+  group_by(date) |>
+  mutate(
+    adjusted_premium_lag = lag(adjusted_premium, default = 0),
+    adjusted_diff = adjusted_premium - adjusted_premium_lag
+  ) |>
+  ungroup()
+
+# Add stacked bar for adjusted premium by category on right y-axis
+p <- p |> add_trace(
+  data = adjusted_diff,
+  x = ~date,
+  y = ~adjusted_diff,
+  type = "bar",
+  name = ~category,
+  color = ~category,
+  colors = "category_colors",
+  showlegend = FALSE,     # Don't show duplicate legend
+  yaxis = "y2",
+  opacity = 0.5,
+  hoverinfo = "skip"      # Prevents tooltip from showing
+)
+
+p <- p %>%
+  layout(
+    shapes = purrr::pmap(event, function(start, end, color, label, ...) {
+      list(
+        type = "rect",
+        xref = "x", x0 = start, x1 = end,
+        yref = "paper", y0 = 0, y1 = 1,
+        fillcolor = color,
+        line = list(width = 0),
+        layer = "below"
+      )
+    }),
+    annotations = purrr::pmap(event, function(start, end, label, ...) {
+      list(
+        x = start + (end - start)/2,
+        xref = "x",
+        y = 1.02,
+        yref = "paper",
+        text = label,
+        showarrow = FALSE,
+        font = list(size = 12, color = "black")
+      )
+    })
+  )
+
+# Month label annotations (top row)
+annotations <- list()
+
+# Row 1: Month (centered)
+for (i in seq_len(nrow(month_centers))) {
+  annotations[[length(annotations) + 1]] <- list(
+    x = month_centers$center_date[i],
+    y = -0.10,
+    text = month_centers$month[i],
+    xref = "x",
+    yref = "paper",
+    showarrow = FALSE,
+    font = list(size = 11, family = "Arial"),
+    yanchor = "top"
   )
 }
 
-p <- p |> layout(
-  title = "<b>COE Premiums and Bid-to-Quota Ratio Over Time</b>",
-  xaxis = list(title = "<b>Bidding Month</b>", tickangle = 45, rangeslider = list(visible = TRUE), type = "category"),
-  yaxis = list(title = "<b>Quota Premium (SGD)</b>", side = "left", tickformat = "$,.0f"),
-  yaxis2 = list(title = "<b>Bid-to-Quota Ratio</b>", overlaying = "y", side = "right", tickformat = ".2f"),
-  legend = list(orientation = "h", y = -0.3, x = 0.5, xanchor = "center", yanchor = "top"),
-  hovermode = "x unified",
-  margin = list(t = 80, b = 150)
+# Row 2: Year — only show for January
+for (i in seq_len(nrow(month_centers))) {
+  if (month_centers$month[i] == "Jan") {
+    annotations[[length(annotations) + 1]] <- list(
+      x = month_centers$center_date[i],
+      y = -0.14,
+      text = as.character(month_centers$year[i]),
+      xref = "x",
+      yref = "paper",
+      showarrow = FALSE,
+      font = list(size = 11, family = "Arial"),
+      yanchor = "top"
+    )
+  }
+}
+
+# Row 3: Bidding round — per point
+for (i in seq_len(nrow(merged))) {
+  annotations[[length(annotations) + 1]] <- list(
+    x = merged$date[i],
+    y = -0.18,
+    text = merged$bidding_exercise[i],
+    xref = "x",
+    yref = "paper",
+    showarrow = FALSE,
+    font = list(size = 10, family = "Courier New"),
+    yanchor = "top"
+  )
+}
+
+# Define tick labels: only show full year if the zoom range exceeds 1 year
+visible_range <- as.numeric(difftime(max_date, min_date, units = "days")) > 365
+
+merged <- merged |> mutate(
+  tick_label = if (visible_range) {
+    ifelse(month == "Jan", as.character(year), "")
+  } else {
+    ifelse(month == "Jan", paste0(month, " ", year), month)
+  }
 )
 
-p
+# Layout with initial view range set to last 10 years
+p <- p |> layout(
+  autosize = TRUE,
+  width = NULL,
+  title = list(
+    text = "COE Premium vs. Inflation Adj. Premium",
+    y = 0.98,          # Lower it slightly to leave room for dropdown
+    yanchor = "top",
+    pad = list(b = 30) # Adds margin below the title
+  ),
+  updatemenus = list(list(
+  type = "dropdown",
+  direction = "down",
+  x = 1,
+  xanchor = "right",
+  y = 0.93,
+  yanchor = "bottom",
+  showactive = TRUE,
+  buttons = buttons)),
+  xaxis = list(
+    title = "",
+    tickvals = merged$date,
+    ticktext = rep("", nrow(merged)),
+    tickangle = 0,
+    tickfont = list(size = 10),
+    automargin = TRUE,
+    range = c(min_date, max_date),
+    autorange = FALSE,
+    rangeselector = list(
+      buttons = list(
+        list(count = 1, label = "1y", step = "year", stepmode = "backward"),
+        list(count = 2, label = "2y", step = "year", stepmode = "backward"),
+        list(count = 5, label = "5y", step = "year", stepmode = "backward"),
+        list(count = 10, label = "10y", step = "year", stepmode = "backward"),
+        list(step = "all", label = "All")
+      )
+    )
+  ),
+  yaxis = list(
+    title = "Quota Premium (SGD)",
+    tickformat = "$,.0f"
+  ),
+  yaxis2 = list(
+    title = "Adjusted Premium (SGD)",
+    overlaying = "y",
+    side = "right",
+    tickformat = "$,.0f"
+  ),
+  barmode = "stack",
+  annotations = annotations,
+  margin = list(b = 160,  r = 20),
+  legend = list(orientation = "h", x = 0.5, xanchor = "center", y = -0.3)
+)
+
+## Javascript for dynamic label updates
+htmlwidgets::onRender(p, "
+  function(el, x) {
+    const annotations = x.layout.annotations || [];
+
+    // Cache original text values
+    annotations.forEach(a => {
+      if (a.y === -0.10) a._originalMonth = a.text;       // Month
+      if (a.y === -0.14) a._originalYear = a.text;        // Year (Jan)
+      if (a.y === -0.18) a._originalBid = a.text;         // Bidding Exercise
+    });
+
+    function updateLabels(range) {
+      const start = new Date(range[0]);
+      const end = new Date(range[1]);
+      const diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+
+      annotations.forEach(a => {
+        if (a.y === -0.10) {
+          // Month label
+          a.text = (diffMonths <= 12) ? a._originalMonth : '';
+        } else if (a.y === -0.14) {
+          // Year (Jan only)
+          a.text = a._originalYear || '';
+        } else if (a.y === -0.18) {
+          // Bidding Exercise
+          a.text = (diffMonths <= 12) ? a._originalBid : '';
+        }
+      });
+
+      Plotly.relayout(el, {annotations: annotations});
+    }
+
+    el.on('plotly_relayout', function(e) {
+      const r0 = e['xaxis.range[0]'];
+      const r1 = e['xaxis.range[1]'];
+      if (r0 && r1) updateLabels([r0, r1]);
+    });
+
+    updateLabels(x.layout.xaxis.range); // Initial render
+  }
+")
+
 ```
 :::
