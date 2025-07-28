@@ -91,10 +91,10 @@ coe_clean <- coe_clean |>
 :::
 
 ::: {.callout-tip collapse="true" icon=false title="2.a.ii: Add Month Column and Change Bidding Exercise Values"} 
-| *Column Changes*      |  *Original*                               | *Values after changes*    |
-| --------------------- | ----------------------------------------- | ------------------------- |
-| `Bidding Exercise`    | June 2025 Second Open Bidding Exercise    | "1" or "2"                |
-| `Month`               | Column did not exist                      |"Jul", "Oct" etc.          |
+| *Column Changes*      |  *Original*                               | *Values after changes*            |
+| --------------------- | ----------------------------------------- | --------------------------------- |
+| `Bidding Exercise`    | June 2025 Second Open Bidding Exercise    | "1" or "2"                        |
+| `Month`               | Column did not exist                      |"Jul", Ensure "sep" and not "sept" |
 
 ```{r}
 coe_clean <- coe_clean |>
@@ -103,13 +103,12 @@ coe_clean <- coe_clean |>
       str_detect(`Bidding Exercise`, regex("First", ignore_case = TRUE)) ~ "1",
       str_detect(`Bidding Exercise`, regex("Second", ignore_case = TRUE)) ~ "2",
       TRUE ~ as.character(`Bidding Exercise`)
-    )
+    ),
+    Month = format(`Announcement Date`, "%B"),  # Full month name
+    Month = factor(Month, levels = base::month.name, labels = base::month.abb),
+    Month = as.character(Month)  # Now "Jan", "Feb", ..., "Sep"
   )
 
-coe_clean <- coe_clean |>
-  mutate(
-    Month = format(`Announcement Date`, "%b")
-  )
 
 ```
 :::
@@ -378,32 +377,44 @@ category_order <- c("Cat D: Motorcycles", "Cat C: Buses", "Cat A: â‰¤1600cc or â
 category_levels <- levels(factor(merged$category, levels = category_order))
 
 # Create one button per category
+# Create one button per category
 buttons <- lapply(category_levels, function(cat) {
+  # Create a visibility vector: TRUE for selected category, FALSE otherwise
+  vis <- rep(FALSE, length(category_levels) * 2)
+  cat_index <- which(category_levels == cat)
+  vis[cat_index] <- TRUE  # for line
+  vis[cat_index + length(category_levels)] <- TRUE  # for bar
+
   list(
     method = "update",
     args = list(
-      list(visible = c(
-        rep(TRUE, length(category_levels)),     # lines
-        rep(TRUE, length(category_levels))      # bars
-      ) & rep(category_levels == cat, 2)),
-      list(title = paste("Category:", cat), "xaxis.autorange" = TRUE) 
+      list(visible = vis),
+      list(title = paste("Category:", cat),
+           "xaxis.autorange" = TRUE,
+           "yaxis.autorange" = TRUE,
+           "yaxis2.autorange" = TRUE)
     ),
     label = cat
   )
 })
 
 # Add 'All' button at the beginning
+# Add 'All' button at the beginning
 buttons <- c(
   list(list(
     method = "update",
     args = list(
       list(visible = rep(TRUE, length(category_levels) * 2)),
-      list(title = "All Categories", "xaxis.autorange" = TRUE)
+      list(title = "COE Premium vs. Inflation Adjusted Premium",
+           "xaxis.autorange" = TRUE,
+           "yaxis.autorange" = TRUE,
+           "yaxis2.autorange" = TRUE)
     ),
     label = "All"
   )),
   buttons
 )
+
 
 
 
@@ -436,6 +447,7 @@ month_annots <- merged |>
   summarise(mid_date = mean(date), .groups = "drop") |>
   filter(!is.na(mid_date))
 
+
 # Build interactive plot
 p <- plot_ly(data = merged, type = 'scatter', mode = 'lines') |>
   add_trace(
@@ -454,22 +466,11 @@ p <- plot_ly(data = merged, type = 'scatter', mode = 'lines') |>
   )
 
 
-# Sort and calculate difference from previous
-adjusted_diff <- merged |>
-  mutate(category = factor(category, levels = category_order)) |>
-  arrange(date, category) |>
-  group_by(date) |>
-  mutate(
-    adjusted_premium_lag = lag(adjusted_premium, default = 0),
-    adjusted_diff = adjusted_premium - adjusted_premium_lag
-  ) |>
-  ungroup()
-
-# Add stacked bar for adjusted premium by category on right y-axis
+# Add grouped bar for adjusted premium by category on right y-axis
 p <- p |> add_trace(
-  data = adjusted_diff,
+  data = merged,
   x = ~date,
-  y = ~adjusted_diff,
+  y = ~adjusted_premium,
   type = "bar",
   name = ~category,
   color = ~category,
@@ -480,7 +481,8 @@ p <- p |> add_trace(
   hoverinfo = "skip"      # Prevents tooltip from showing
 )
 
-p <- p %>%
+# Add event highlighted area
+p <- p |>
   layout(
     shapes = purrr::pmap(event, function(start, end, color, label, ...) {
       list(
@@ -569,19 +571,20 @@ p <- p |> layout(
   width = NULL,
   title = list(
     text = "COE Premium vs. Inflation Adj. Premium",
-    y = 0.98,          # Lower it slightly to leave room for dropdown
-    yanchor = "top",
-    pad = list(b = 30) # Adds margin below the title
+    y = 0.98,
+    x = 0.5,
+    pad = list(b = 1000)
   ),
   updatemenus = list(list(
-  type = "dropdown",
-  direction = "down",
-  x = 1,
-  xanchor = "right",
-  y = 0.93,
-  yanchor = "bottom",
-  showactive = TRUE,
-  buttons = buttons)),
+    type = "dropdown",
+    direction = "down",
+    x = 1,
+    xanchor = "right",
+    y = 200,
+    yanchor = "bottom",
+    showactive = TRUE,
+    buttons = buttons
+  )),
   xaxis = list(
     title = "",
     tickvals = merged$date,
@@ -589,9 +592,12 @@ p <- p |> layout(
     tickangle = 0,
     tickfont = list(size = 10),
     automargin = TRUE,
-    range = c(min_date, max_date),
-    autorange = FALSE,
+    autorange = TRUE,
     rangeselector = list(
+      x = 0,
+      xanchor = "left",
+      y = 10,
+      yanchor = "bottom",
       buttons = list(
         list(count = 1, label = "1y", step = "year", stepmode = "backward"),
         list(count = 2, label = "2y", step = "year", stepmode = "backward"),
@@ -603,19 +609,22 @@ p <- p |> layout(
   ),
   yaxis = list(
     title = "Quota Premium (SGD)",
-    tickformat = "$,.0f"
+    tickformat = "$,.0f",
+    autorange = TRUE
   ),
   yaxis2 = list(
     title = "Adjusted Premium (SGD)",
     overlaying = "y",
     side = "right",
-    tickformat = "$,.0f"
+    tickformat = "$,.0f",
+    autorange = TRUE
   ),
-  barmode = "stack",
+  barmode = "group",
   annotations = annotations,
-  margin = list(b = 160,  r = 20),
+  margin = list(r = 80, t = 65),
   legend = list(orientation = "h", x = 0.5, xanchor = "center", y = -0.3)
 )
+
 
 ## Javascript for dynamic label updates
 htmlwidgets::onRender(p, "
