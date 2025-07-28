@@ -347,7 +347,7 @@ write_csv(merged_data, "data/merged.csv")
 :::
 
 # 4. Plot Interactive Visualisation
-::: {.callout-tip collapse="false" icon=false title="2.1: Renaming the Columns"}
+
 ```{r, message=FALSE, warning=FALSE}
 
 # Load cleaned data
@@ -661,4 +661,3 @@ htmlwidgets::onRender(p, "
 ")
 
 ```
-:::
