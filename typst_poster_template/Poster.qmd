@@ -13,38 +13,36 @@ format:
 
 # Introduction
 
-The Certificate of Entitlement (COE) system, introduced in 1990, regulates Singapore’s vehicle population by requiring prospective vehicle owners to bid for limited certificates valid for 10 years. This quota-based system supports sustainable urban planning and curbs road congestion. COE prices vary with market demand, economic trends, and government policy. This project examines the evolution of COE prices across vehicle categories, highlighting key patterns and their implications on consumer behavior and transport policy.
+Singapore’s Certificate of Entitlement (COE) system, introduced in 1990, controls vehicle ownership through a bidding process for limited 10-year certificates. COE prices are influenced by demand, quotas, and economic trends.
+To better understand the real cost burden on consumers, this study integrates Consumer Price Index (CPI) data to adjust COE premiums for inflation. By comparing nominal COE prices with their inflation-adjusted counterparts, we gain insights into how the true purchasing power required for car ownership has evolved. This dual perspective allows for a more accurate assessment of long-term affordability and the impact of macroeconomic conditions on the vehicle market.
 
 # Previous Visualisation
 
 ![Visualisation from CNA](./images/original_chart.jpg)
-[CNA article link:](https://www.channelnewsasia.com/singapore/coe-prices-car-premiums-deep-dive-does-bidding-system-need-update-3936056)
-# Strengths
 
-| `Index`       | `Strength`                | `Elaboration`                                                                                                   |
+[Article:](https://www.channelnewsasia.com/singapore/coe-prices-car-premiums-deep-dive-does-bidding-system-need-update-3936056)
+
+# Strengths of Original Visualisation
+
+| *Index*       | *Strength*                | *Elaboration*                                                                                                   |
 | ------------- | ------------------------- |---------------------------------------------------------------------------------------------------------------- |
 | 1             | Clear Trend Lines         | Colour-coded lines for each COE category clearly show long-term trends across time.                             |
 | 2             | Endpoint Labels           | Annotated end values (e.g., Cat B: S\$135,336) help highlight latest prices without hovering.                   |
-| 3             | Distinct Category Colours | Each COE category is represented by a distinct, recognisable colour.                                            |
-| 4             | Clean Design              | Minimalist styling focuses attention on the data without distractions.                                          |
-| 5             | Consistent Time Axis      | Uniform x-axis with quarterly markers supports visual comparison across years.                                  |
-| 6             | High Readability          | Large fonts and good spacing improve visual clarity.                                                            |
-| 7             | Snapshot of Timeframe     | Covers more than a decade (2012–2023), providing historical context.                                            |
-| 8             | Interactive Exploration   | Hover and filter by category and year to uncover meaningful patterns hidden in the data.                        |
+| 3             | Clean Design              | Minimalist styling focuses attention on the data without distractions.                                          |
+| 4             | Interactive Exploration   | Hover and filter by category and year to uncover meaningful patterns hidden in the data.                        |
 
 : Key Strengths of Visualisation {#tbl-1}
 
 
 # Suggested Improvements
-| `Index `      | `Improvement`             | `Elaboration`                                                                                                   |
+| *Index*       | *Improvement*             | *Elaboration*                                                                                                   |
 | ------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| 1             | X-Axis Granularity        | Replace quarterly ticks with bi-monthly or monthly markers to match the COE bidding schedule.                   |
-| 2             | Category Clarification    | Include descriptive labels or tooltips (e.g., “Cat A: Small cars ≤1600cc or ≤130bhp”) for better context.       |
-| 3             | Policy/Economic Context   | Overlay annotations for major events (e.g., COVID-19, VES changes, loan curbs) to explain price shifts.         |
-| 4             | Category D Visibility     | Either use a dual y-axis or allow category filtering to highlight Cat D, which has much lower prices.           |
-| 6             | Supply Context            | Add an additional trend line showing quota levels to relate supply to price fluctuations.                       |
-| 7             | Analytical Depth          | Include percentage change indicators for key periods to show rate of price movement over time.                  |
-| 8             | Interactivity             | Add chart to be dynamic and scaled according to filter of chart elements to allow for better visual comparisons.|
+| 1             | X-Axis Granularity        | Allow X-axis to show bi-monthly bidding exercise instead of just showing years in quaters.                      |
+| 2             | Category Clarification    | Include descriptive labels or tooltips (e.g., “Cat A: Small cars ≤1600cc or ≤97kW”) for better context.         |
+| 3             | Policy/Economic Context   | Overlay annotations for major events (e.g., COVID-19, Quota injections) to explain price shifts.                |
+| 4             | Category D Visibility     | Allow category filtering or log scale of y-axis to highlight Cat D, which has much lower prices.                |
+| 5             | Inflation Context         | Add additional CPI date to inflation with current COE prices.                                                   |
+| 6             | Interactivity             | Add chart to be dynamic and scaled according to filter of chart elements to allow for better visual comparisons.|
 
 : Suggested Improvements to Visualisation {#tbl-2}
 
@@ -55,85 +53,78 @@ The Certificate of Entitlement (COE) system, introduced in 1990, regulates Singa
 ::: {.block fill=rgb("F3E0CE") inset="10pt" radius="15pt"}
 
 ## Data Source:
+### COE Data Columns
 
-1. The COE data source has the following columns:
-  a. **Bidding Exercise**: Indicates whether it is the first or second bid of the month.
-  b. **Announcement Date**: The date when the COE results are announced.
-  c. **Year**: The year of the bidding exercise.
-  d. **Category**: The COE category (e.g., Cat A, Cat B).
-  e. **Quota**: The number of COEs available for bidding.
-  f. **Quota Premium**: The premium amount for the quota.
-  g. **Total Bids Received**: The total number of bids received for that category.
-  h. **Number of Successful Bids**: The number of successful bids for that category.
-  
-  
-The COE data spreadsheet is taken from [SGCharts](https://coe.sgcharts.com/). 
-It is mentioned in fine print that their data is sourced from the Land Transport Authority (LTA).
-The data spreadsheet, can be viewed in this [`Google Sheet`](https://docs.google.com/spreadsheets/d/1Ma8dm_rdtdfNp8ONUG5ykFHwrEg1GFC3ObOMualMVBM/edit?gid=0#gid=0).
+| *Column Name*             | *Description*                                                                     |
+|----------------------------|----------------------------------------------------------------------------------|
+| `Bidding Exercise`         | Indicates whether it is the first or second bid of the month (e.g., "1" or "2")  |
+| `Announcement Date`        | The date when the COE results are announced                                      |
+| `Year`                     | The year of the bidding exercise                                                 |
+| `Category`                 | COE category (e.g., Cat A, Cat B)                                                |
+| `Quota`                    | Number of COEs available for bidding                                             |
+| `Quota Premium`            | Premium amount (SGD) bidders must pay for COE                                    |
+| `Total Bids Received`      | Total number of bids received for that category                                  |
+| `Number of Successful Bids`| Number of successful bids for that category                                      |
 
-2. The CPI data source has the following columns:
-  a. **Data Series**: Indicates Month and Year e.g. "2023 Jan".
-  b. **All Items**: The Consumer Price Index of All Items for that month and year.
+### CPI Data Columns
+| *Column Name*   | *Description*                                                             |
+|-----------------|---------------------------------------------------------------------------|
+| `Data Series`   | Indicates the month and year of the CPI reading (e.g., "2023 Jan")        |
+| `All Items`     | Consumer Price Index (CPI) of all items for the corresponding time period |
 
-The CPI data spreadsheet is taken from the [Department of Statistics Singapore](https://tablebuilder.singstat.gov.sg/table/TS/M213752).
+Sources: 
+1.[SGCharts](https://coe.sgcharts.com/). 
+2.[`COE` Google Spreadsheet](https://docs.google.com/spreadsheets/d/1Ma8dm_rdtdfNp8ONUG5ykFHwrEg1GFC3ObOMualMVBM/edit?gid=0#gid=0).
+3.[`CPI` Department of Statistics Singapore](https://tablebuilder.singstat.gov.sg/table/TS/M213752).
 
-## Data Wrangling:
-- These were the changes made to the dataset
-1. **bid to quota** ratio column was added to better show the relationship of `supply and demand` of the COE prices
-2. **Bidding Exercise** was shortened to either `1` or `2` to illustrate which bid of the month it is
+## Data Cleaning:
+The following transformations were applied to prepare the dataset:
+  1. Renamed **Category** (e.g., to `"Cat A: ≤1600cc or ≤97kW"`); dropped **Cat E (Open)** for being too volatile.  
+  2. Simplified **Bidding Exercise** to `"1"` or `"2"`; extracted **Month** from **Announcement Date**, normalized to 3-letter format (e.g., `"Sep"` not `"Sept"`).  
+  3. Transposed **CPI** data; extracted **Year** and **Month** from `data_series`.  
+  4. Merged **COE** and **CPI** on **Year** and **Month**; computed inflation-adjusted premiums.  
+  5. Standardized column names (lowercase, underscores); ensured correct types (e.g., **Quota** as integer).
 
-
-## Software: 
-- `tidyverse` for data wrangling
-- `knitr` for table formatting
-- `stringr` for string manipulation
-- `dplyr` for data manipulation
-- `readxl` for reading Excel files
-- `plotly` for interactive visualizations
-- Quarto PDF format with `Typst` poster layout
+## Libraries and Tools Used: 
+- **Data Handling**: `dplyr`, `tidyverse`, `lubridate`, `stringr`, `readxl`  
+- **Tables**: `knitr`, `DT` (for formatted and interactive tables)  
+- **Visualisation**: `plotly` (for interactive charts)  
+- **HTML Styling**: `htmltools` (custom styling and layout tweaks)  
+- **Document Output**: Quarto (PDF via Typst poster layout)
 :::
 
 # Improved Visualisation
 
+![Improved Visualisation](./images/improved_chart.png)
 
 # Insight
 
-## Real COE Premiums Reveal Slower Growth Than Nominal Figures
+::: {.callout-warning title="1. Real COE Premiums Show Slower Growth"}
+- **Nominal COE prices** rose sharply post-2021.
+- **Real (inflation-adjusted) prices** show a more moderate trend.
+- *Perceived cost increase is partly inflation-driven; real burden is more stable.*
+:::
 
-While nominal COE premiums have risen steeply in recent years—particularly post-2021—the inflation-adjusted (real) premiums show a more tempered increase.  
-✅ **Insight:** The perceived cost increase is partly driven by inflation; real purchasing power erosion tempers the actual increase in cost burden.
+::: {.callout-warning title="2. Cat B Bears the Greatest Burden"}
+- Cat B consistently has the **highest premiums** in both nominal and real terms.
+- Steep increases observed from **2021 to 2023**.
+- *Larger vehicle buyers face the biggest real cost squeeze—likely due to demand or limited quota.*
+:::
 
-## Cat B Vehicles Bear the Greatest Burden — Even After Inflation Adjustment
-
-Cat B (larger cars) consistently shows the highest COE premiums in both nominal and real terms, with a steep rise from 2021–2023.  
-✅ **Insight:** The luxury/larger vehicle segment faces disproportionately high real costs, indicating structural demand pressures or quota limitations.
-
-## Inflation Gap Is Widening in Recent Years
-
-The difference between nominal and real COE premiums has grown noticeably from 2022 onwards.  
-✅ **Insight:** Rising inflation in recent years has increasingly distorted face-value premiums—buyers may feel a stronger squeeze on affordability.
-
+::: {.callout-warning title="3. Inflation Gap Is Widening Recently"}
+- The **gap between nominal and real prices** has increased since 2022.
+- Nominal values diverge significantly from adjusted values.
+- *Inflation increasingly distorts affordability—real purchasing power is declining.*
+:::
 # Further suggestions
 
-Several compelling enhancements could elevate this visualization's analytical power and strategic value:
+Some enhancements that can elevate this visualisation's analytical power and strategic value:
 
-- **Statistical trend lines or moving averages** would help users identify underlying patterns and policy impacts more clearly, particularly during complex periods like 2008–2015 where long-term trends could be distinguished from short-term market volatility.
+1. **Statistical trend lines or COE 3M-PQP** would help users identify underlying patterns and policy impacts more clearly, particularly during complex periods like 2008–2015 where long-term trends could be distinguished from short-term market volatility.
 
-- **Logarithmic scale options** would provide better visibility into the early years (2003–2008) and reveal proportional changes across different price ranges, offering valuable baseline insights for policy analysis.
-
-- **Comparative affordability metrics** such as COE-to-median-income ratios would add crucial economic context, helping users understand price movements in relation to broader economic conditions and purchasing power.
-
-# Conclusion
+2. **Comparative affordability metrics** such as COE-to-median-income ratios would add crucial economic context, helping users understand price movements in relation to broader economic conditions and purchasing power.
 
 # References
-
-
-```
-## Interactive Plots
-If your code execution output is an interactive plot using, e.g., `plotly` or `shiny`, having e.g., hover effects, zoom effects, drop-down menus, sliders, etc., it is suggested that you
-
-1.  save a static version of the plot as PNG and include it in the poster.
-2.  prepare an HTML live demo of the interactive plot to be presented during the poster session.
-```
+CNA, SingStat, SGCharts, and LTA.
 
 

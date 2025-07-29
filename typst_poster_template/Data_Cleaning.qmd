@@ -55,8 +55,8 @@ cpi_raw <- read_excel("data/Monthly CPI.xlsx", skip = 10, n_max = 2, col_names =
 ::: {.callout-tip collapse="true" icon=false title="2a.i: Cleaning Category Names"}
 | *Original `Category` Values*      |  *Updated `Category` Values* |
 | --------------------------------- | -------------------------------|
-|Cat A (Cars up to 1600cc and 97kW) | Cat A: ≤1600cc or ≤130bhp      |
-|Cat B (Cars above 1600cc or 97kW)  | Cat B: >1600cc or >130bhp      |
+|Cat A (Cars up to 1600cc and 97kW) | Cat A: ≤1600cc or ≤97kW      |
+|Cat B (Cars above 1600cc or 97kW)  | Cat B: >1600cc or >97kW      |
 |Cat C (Goods vehicles and buses)   | Cat C: Buses                   |
 |Cat D (Motorcycles)                | Cat D: Motorcycles             |
 
