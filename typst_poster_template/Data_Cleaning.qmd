@@ -1,31 +1,22 @@
 ---
 title: "Data Cleaning and Visualisation of COE and CPI Data"
-format: 
+format:
   html:
-    css: styles.css
     theme: flatly
-    toc: true
-    toc-depth: 2
     code-fold: true
     code-summary: "Show Code"
     df-print: paged
-    
+    page-layout: full
 ---
-```{css, echo=FALSE}
-.callout-tip {
-  max-width: 100% !important;
-  width: 100% !important;
-  padding-right: 0 !important;
-  padding-left: 0 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-```
+
+
 
 # 1. Load Necessary Libraries and Excel File
+
 ::: {.callout-note collapse="true" title="COE and CPI data"}
 ```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 library(readxl)
+library(htmltools)
 library(stringr)
 library(knitr)
 library(DT)
@@ -60,8 +51,8 @@ cpi_raw <- read_excel("data/Monthly CPI.xlsx", skip = 10, n_max = 2, col_names =
 
 # 2. Data Cleaning
 
-## 2.a. COE Data
-::: {.callout-tip collapse="true" icon=false title="2.a.i: Cleaning Category Names"}
+## 2a) COE Data
+::: {.callout-tip collapse="true" icon=false title="2a.i: Cleaning Category Names"}
 | *Original `Category` Values*      |  *Updated `Category` Values* |
 | --------------------------------- | -------------------------------|
 |Cat A (Cars up to 1600cc and 97kW) | Cat A: ≤1600cc or ≤130bhp      |
@@ -90,7 +81,7 @@ coe_clean <- coe_clean |>
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="2.a.ii: Add Month Column and Change Bidding Exercise Values"} 
+::: {.callout-tip collapse="true" icon=false title="2a.ii: Add Month Column and Change Bidding Exercise Values"} 
 | *Column Changes*      |  *Original*                               | *Values after changes*            |
 | --------------------- | ----------------------------------------- | --------------------------------- |
 | `Bidding Exercise`    | June 2025 Second Open Bidding Exercise    | "1" or "2"                        |
@@ -113,7 +104,7 @@ coe_clean <- coe_clean |>
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="2.a.iii: Rename and Keep Relevant Columns"} 
+::: {.callout-tip collapse="true" icon=false title="2a.iii: Rename and Keep Relevant Columns"} 
 
 | **Columns Renamed** | **New Column Names** |
 | ------------------- | -------------------- |
@@ -136,7 +127,7 @@ coe_clean <- coe_clean |>
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="2.a.iv: Type Conversion"}
+::: {.callout-tip collapse="true" icon=false title="2a.iv: Type Conversion"}
 
 Change the data types of the columns to ensure they are in the correct format for analysis.
 
@@ -162,7 +153,7 @@ coe_clean <- coe_clean |>
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="2.a.v: Check for Any Null (NA) Values"}
+::: {.callout-tip collapse="true" icon=false title="2a.v: Check for Any Null (NA) Values"}
 
 **Helps identify columns with missing data for further action.**
 
@@ -199,8 +190,8 @@ DT::datatable(
 write.csv(coe_clean, "data/coe_clean.csv", row.names = FALSE)
 ```
 
-## 2.b. CPI data
-::: {.callout-tip collapse="true" icon=false title="2.b.i: Transpose Data and Change Headers"}
+## 2b) CPI data
+::: {.callout-tip collapse="true" icon=false title="2b.i: Transpose Data and Change Headers"}
 
 | **data\_series** | **cpi** | **month** | **year** |
 | ---------------- | ------- | --------- | -------- |
@@ -233,17 +224,7 @@ cpi_clean <- cpi_raw |>
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="2.b.ii: Create `base cpi` Column, where base year is 2024"}
-```{r, message=FALSE, warning=FALSE}
-# Calculate average CPI for 2024 since it is the base year
-base_cpi <- cpi_clean |>
-  filter(year == 2024) |>
-  summarise(avg_cpi = mean(cpi, na.rm = TRUE)) |>
-  pull(avg_cpi)
-```
-:::
-
-::: {.callout-tip collapse="true" icon=false title="2.b.iii: Drop `data series` Column"}
+::: {.callout-tip collapse="true" icon=false title="2b.ii: Drop `data series` Column"}
 ```{r, message=FALSE, warning=FALSE}
 # Drop unnecessary columns
 cpi_clean <- cpi_clean |>
@@ -251,7 +232,7 @@ cpi_clean <- cpi_clean |>
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="2.b.iv: Type Conversion"}
+::: {.callout-tip collapse="true" icon=false title="2b.iii: Type Conversion"}
 Change the data types of the columns to ensure they are in the correct format for analysis.
 ```{r, message=FALSE, warning=FALSE}
 cpi_clean <- cpi_clean |>
@@ -259,12 +240,11 @@ cpi_clean <- cpi_clean |>
     month = as.character(month),
     year = as.integer(year),
     cpi = as.numeric(cpi),
-    base_cpi = as.numeric(base_cpi)
   )
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="2.b.v: Check for Any Null (NA) Values"}
+::: {.callout-tip collapse="true" icon=false title="2b.iv: Check for Any Null (NA) Values"}
 **Helps identify columns with missing data for further action.**
 ```{r, message=FALSE, warning=FALSE}
 # Check for null values
@@ -302,7 +282,7 @@ write.csv(cpi_clean, "data/cpi_clean.csv", row.names = FALSE)
 ```
 
 # 3. Merge COE and CPI Data
-::: {.callout-tip collapse="true" icon=false title="3.1 Merge COE and CPI Data"}
+::: {.callout-tip collapse="true" icon=false title="3.i Merge COE and CPI Data"}
 
 **Merge is done using a left join on month and year columns.**
 ```{r, message=FALSE, warning=FALSE}
@@ -311,18 +291,18 @@ merged_data <- left_join(coe_clean, cpi_clean, by = c("month", "year"))
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="3.2: Create Adjusted Quota Premium Column"}
+::: {.callout-tip collapse="true" icon=false title="3.ii: Create Adjusted Quota Premium Column"}
 *Create a new column `adjusted_premium` that adjusts the quota premium based on the CPI. The formula is: adjusted_premium = `quota_premium` / (`cpi` / `base_cpi`)*
 ```{r, message=FALSE, warning=FALSE}
 # Create real quota premium
 merged_data <- merged_data |> mutate(
-  adjusted_premium = quota_premium / (cpi / base_cpi)
+  adjusted_premium = quota_premium * 100 / cpi
 )
 ```
 :::
 
-::: {.callout-tip collapse="true" icon=false title="3.3: Keep Relevant Columns"}
-*Dropped cpi and base_cpi columns as they are not needed for the final analysis.*
+::: {.callout-tip collapse="true" icon=false title="3.iii: Keep Relevant Columns"}
+*Dropped cpi column as it is not needed for the final analysis.*
 ```{r, message=FALSE, warning=FALSE}
 # Drop unnecessary columns
 merged_data <- merged_data |>
@@ -390,7 +370,6 @@ buttons <- lapply(category_levels, function(cat) {
     args = list(
       list(visible = vis),
       list(title = paste("Category:", cat),
-           "xaxis.autorange" = TRUE,
            "yaxis.autorange" = TRUE,
            "yaxis2.autorange" = TRUE)
     ),
@@ -475,10 +454,18 @@ p <- p |> add_trace(
   name = ~category,
   color = ~category,
   colors = "category_colors",
-  showlegend = FALSE,     # Don't show duplicate legend
+  showlegend = TRUE,     # Don't show duplicate legend
   yaxis = "y2",
   opacity = 0.5,
-  hoverinfo = "skip"      # Prevents tooltip from showing
+  hoverinfo = "text",      # Prevents tooltip from showing
+  text = ~paste(
+  "Category:", category,
+  paste0("<br>Month-Year: ", month, " ", year),
+  paste0("<br>Bidding Exercise: ", bidding_exercise),
+  paste0("<br>Quota Premium: $", formatC(quota_premium, format = "f", big.mark = ",", digits = 0)),
+  paste0("<br>Adjusted Premium: $", formatC(adjusted_premium, format = "f", big.mark = ",", digits = 0))
+  ),
+  width = 5e8  
 )
 
 # Add event highlighted area
@@ -575,16 +562,77 @@ p <- p |> layout(
     x = 0.5,
     pad = list(b = 1000)
   ),
-  updatemenus = list(list(
+  
+updatemenus = list(
+
+  # 📆 Year Range Selector (Left side)
+  list(
+    type = "buttons",
+    direction = "right",
+    x = 0,
+    xanchor = "left",
+    y = 1.2,
+    yanchor = "top",
+    showactive = TRUE,
+    active = 4,  # default active = "All"
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1,
+    pad = list(t = 5, r = 10),
+    buttons = list(
+      list(method = "relayout", label = "1y", args = list(list("xaxis.range" = list(max_date %m-% years(1), max_date)))),
+      list(method = "relayout", label = "2y", args = list(list("xaxis.range" = list(max_date %m-% years(2), max_date)))),
+      list(method = "relayout", label = "5y", args = list(list("xaxis.range" = list(max_date %m-% years(5), max_date)))),
+      list(method = "relayout", label = "10y", args = list(list("xaxis.range" = list(max_date %m-% years(10), max_date)))),
+      list(method = "relayout", label = "All", args = list(list("xaxis.autorange" = TRUE)))
+    )
+  ),
+
+  # 🔢 Log/Linear Toggle (Right beside year filter)
+  list(
+    type = "buttons",
+    direction = "right",
+    x = 0.22,
+    xanchor = "left",
+    y = 1.2,
+    yanchor = "top",
+    showactive = TRUE,
+    active = 0,  # default active = "Linear"
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1,
+    pad = list(t = 5, r = 10),
+    buttons = list(
+      list(
+        method = "relayout",
+        label = "Linear",
+        args = list(list("yaxis.type" = "linear", "yaxis2.type" = "linear"))
+      ),
+      list(
+        method = "relayout",
+        label = "Log",
+        args = list(list("yaxis.type" = "log", "yaxis2.type" = "log"))
+      )
+    )
+  ),
+
+  # 🗂 Category Dropdown (Top Right)
+  list(
     type = "dropdown",
     direction = "down",
     x = 1,
     xanchor = "right",
-    y = 200,
-    yanchor = "bottom",
+    y = 1.2,
+    yanchor = "top",
     showactive = TRUE,
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1,
+    pad = list(t = 5, r = 10),
     buttons = buttons
-  )),
+  )
+),
+  
   xaxis = list(
     title = "",
     tickvals = merged$date,
@@ -592,20 +640,7 @@ p <- p |> layout(
     tickangle = 0,
     tickfont = list(size = 10),
     automargin = TRUE,
-    autorange = TRUE,
-    rangeselector = list(
-      x = 0,
-      xanchor = "left",
-      y = 10,
-      yanchor = "bottom",
-      buttons = list(
-        list(count = 1, label = "1y", step = "year", stepmode = "backward"),
-        list(count = 2, label = "2y", step = "year", stepmode = "backward"),
-        list(count = 5, label = "5y", step = "year", stepmode = "backward"),
-        list(count = 10, label = "10y", step = "year", stepmode = "backward"),
-        list(step = "all", label = "All")
-      )
-    )
+    autorange = TRUE
   ),
   yaxis = list(
     title = "Quota Premium (SGD)",
@@ -624,7 +659,6 @@ p <- p |> layout(
   margin = list(r = 80, t = 65),
   legend = list(orientation = "h", x = 0.5, xanchor = "center", y = -0.3)
 )
-
 
 ## Javascript for dynamic label updates
 htmlwidgets::onRender(p, "
@@ -669,4 +703,27 @@ htmlwidgets::onRender(p, "
   }
 ")
 
+```
+
+```{r}
+htmltools::tags$style(HTML("
+.callout-tip {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-left: 5px solid #FF7F0E !important;
+}
+"))
+
+htmltools::tags$style(htmltools::HTML("
+nav.toc, .toc {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+}
+"))
 ```
