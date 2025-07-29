@@ -98,21 +98,30 @@ The CPI data spreadsheet is taken from the [Department of Statistics Singapore](
 
 # Insight
 
-Quod idem licet transferre in voluptatem, ut postea variari voluptas distinguique possit, augeri amplificarique non possit. At etiam Athenis, ut e patre audiebam facete et urbane Stoicos irridente, statua est in quo a nobis philosophia defensa et collaudata est, cum id, quod maxime placeat, facere possimus, omnis voluptas assumenda est, om- nis dolor repellendus. Temporibus autem quibusdam et.
+## Real COE Premiums Reveal Slower Growth Than Nominal Figures
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim aeque doleamus animo, cum corpore dolemus, fieri tamen permagna accessio potest, si aliquod aeternum et infinitum impendere malum nobis opinemur. 
+While nominal COE premiums have risen steeply in recent years—particularly post-2021—the inflation-adjusted (real) premiums show a more tempered increase.  
+✅ **Insight:** The perceived cost increase is partly driven by inflation; real purchasing power erosion tempers the actual increase in cost burden.
 
+## Cat B Vehicles Bear the Greatest Burden — Even After Inflation Adjustment
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim aeque doleamus animo, cum corpore dolemus, fieri tamen permagna accessio potest, si aliquod aeternum et infinitum impendere malum nobis opinemur. Quod idem licet transferre in voluptatem, ut postea variari voluptas distinguique possit, augeri amplificarique non possit. At etiam Athenis, ut e patre audiebam facete et urbane Stoicos irridente, statua est in quo a nobis philosophia defensa et collaudata est, cum id, quod maxime placeat, facere possimus, omnis voluptas assumenda est, om- nis dolor repellendus. Temporibus autem quibusdam et.
+Cat B (larger cars) consistently shows the highest COE premiums in both nominal and real terms, with a steep rise from 2021–2023.  
+✅ **Insight:** The luxury/larger vehicle segment faces disproportionately high real costs, indicating structural demand pressures or quota limitations.
 
-- Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do.
-  - Lorem ipsum dolor sit amet.
-  -  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-- Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.
-  - Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed. 
-  - Lorem ipsum dolor sit amet, consectetur adipiscing.
+## Inflation Gap Is Widening in Recent Years
+
+The difference between nominal and real COE premiums has grown noticeably from 2022 onwards.  
+✅ **Insight:** Rising inflation in recent years has increasingly distorted face-value premiums—buyers may feel a stronger squeeze on affordability.
 
 # Further suggestions
+
+Several compelling enhancements could elevate this visualization's analytical power and strategic value:
+
+- **Statistical trend lines or moving averages** would help users identify underlying patterns and policy impacts more clearly, particularly during complex periods like 2008–2015 where long-term trends could be distinguished from short-term market volatility.
+
+- **Logarithmic scale options** would provide better visibility into the early years (2003–2008) and reveal proportional changes across different price ranges, offering valuable baseline insights for policy analysis.
+
+- **Comparative affordability metrics** such as COE-to-median-income ratios would add crucial economic context, helping users understand price movements in relation to broader economic conditions and purchasing power.
 
 # Conclusion
 
