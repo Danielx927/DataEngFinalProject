@@ -64,7 +64,8 @@ This poster examines how COE prices have evolved in relation to the quota supply
 | `Total Bids Received`      | Total number of bids received for that category                                  |
 | `Number of Successful Bids`| Number of successful bids for that category                                      |
 
-Sources: 
+Sources:
+
 1.[SGCharts](https://coe.sgcharts.com/).
 
 2.[`COE` Google Spreadsheet](https://docs.google.com/spreadsheets/d/1Ma8dm_rdtdfNp8ONUG5ykFHwrEg1GFC3ObOMualMVBM/edit?gid=0#gid=0).
@@ -77,11 +78,11 @@ Sources:
   3. Standardised column names (lowercase, underscores); ensured correct types (e.g., **Quota** as integer).
 
 ## Libraries and Tools Used: 
-- **Data Handling**: `dplyr`, `tidyverse`, `lubridate`, `stringr`, `readxl`  
-- **Tables**: `knitr`, `DT` (for formatted and interactive tables)  
-- **Visualisation**: `plotly` (for interactive charts)  
-- **HTML Styling**: `htmltools` (custom styling and layout tweaks)  
-- **Document Output**: Quarto (PDF via Typst poster layout)
+1. **Data Handling**: `dplyr`, `tidyverse`, `lubridate`, `stringr`, `readxl`  
+2. **Tables**: `knitr`, `DT` (for formatted and interactive tables)  
+3. **Visualisation**: `plotly` (for interactive charts)  
+4. **HTML Styling**: `htmltools` (custom styling and layout tweaks)  
+5. **Document Output**: Quarto (PDF via Typst poster layout)
 :::
 
 # Improved Visualisation
