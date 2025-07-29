@@ -93,6 +93,7 @@
   footer_url_font_size = int(footer_url_font_size) * 1pt
   footer_text_font_size = int(footer_text_font_size) * 1pt
 
+
   // Configure the page.
   // This poster defaults to 36in x 24in.
   set page(

@@ -13,16 +13,18 @@ format:
 
 # Introduction
 
-Singapore’s Certificate of Entitlement (COE) system, introduced in 1990, controls vehicle ownership through a bidding process for limited 10-year certificates. COE prices are influenced by demand, quotas, and economic trends.
-To better understand the real cost burden on consumers, this study integrates Consumer Price Index (CPI) data to adjust COE premiums for inflation. By comparing nominal COE prices with their inflation-adjusted counterparts, we gain insights into how the true purchasing power required for car ownership has evolved. This dual perspective allows for a more accurate assessment of long-term affordability and the impact of macroeconomic conditions on the vehicle market.
+Singapore’s Certificate of Entitlement (COE) system was established in 1990 to regulate vehicle ownership by requiring individuals to bid for limited certificates valid for 10 years. COE premiums fluctuate in response to changing market dynamics—particularly the available quota and demand from consumers.
 
-# Previous Visualisation
+This poster examines how COE prices have evolved in relation to the quota supply across various vehicle categories. By analysing both price trends and supply volumes, we uncover patterns that reveal how tight quotas can drive up premiums, and vice versa. Understanding this relationship provides valuable insight into market behavior and informs future transport and policy planning.
+
+# Original Visualisation
 
 ![Visualisation from CNA](./images/original_chart.jpg)
 
-[Article:](https://www.channelnewsasia.com/singapore/coe-prices-car-premiums-deep-dive-does-bidding-system-need-update-3936056)
+[Article link:](https://www.channelnewsasia.com/singapore/coe-prices-car-premiums-deep-dive-does-bidding-system-need-update-3936056)
 
-# Strengths of Original Visualisation
+
+# Strengths Of Original Visualisation
 
 | *Index*       | *Strength*                | *Elaboration*                                                                                                   |
 | ------------- | ------------------------- |---------------------------------------------------------------------------------------------------------------- |
@@ -31,20 +33,17 @@ To better understand the real cost burden on consumers, this study integrates Co
 | 3             | Clean Design              | Minimalist styling focuses attention on the data without distractions.                                          |
 | 4             | Interactive Exploration   | Hover and filter by category and year to uncover meaningful patterns hidden in the data.                        |
 
-: Key Strengths of Visualisation {#tbl-1}
 
 
 # Suggested Improvements
 | *Index*       | *Improvement*             | *Elaboration*                                                                                                   |
 | ------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | 1             | X-Axis Granularity        | Allow X-axis to show bi-monthly bidding exercise instead of just showing years in quaters.                      |
-| 2             | Category Clarification    | Include descriptive labels or tooltips (e.g., “Cat A: Small cars ≤1600cc or ≤97kW”) for better context.         |
+| 2             | Category Clarification    | Include more descriptive labels or tooltips (e.g., “Cat A: Small cars ≤1600cc or ≤97kW”) for better context.    |
 | 3             | Policy/Economic Context   | Overlay annotations for major events (e.g., COVID-19, Quota injections) to explain price shifts.                |
 | 4             | Category D Visibility     | Allow category filtering or log scale of y-axis to highlight Cat D, which has much lower prices.                |
-| 5             | Inflation Context         | Add additional CPI date to inflation with current COE prices.                                                   |
-| 6             | Interactivity             | Add chart to be dynamic and scaled according to filter of chart elements to allow for better visual comparisons.|
+| 5             | Supply Context            | Show the relationship of quota suppy to quota premium prices.                                                   |
 
-: Suggested Improvements to Visualisation {#tbl-2}
 
 
 # Implementation
@@ -53,7 +52,6 @@ To better understand the real cost burden on consumers, this study integrates Co
 ::: {.block fill=rgb("F3E0CE") inset="10pt" radius="15pt"}
 
 ## Data Source:
-### COE Data Columns
 
 | *Column Name*             | *Description*                                                                     |
 |----------------------------|----------------------------------------------------------------------------------|
@@ -66,24 +64,17 @@ To better understand the real cost burden on consumers, this study integrates Co
 | `Total Bids Received`      | Total number of bids received for that category                                  |
 | `Number of Successful Bids`| Number of successful bids for that category                                      |
 
-### CPI Data Columns
-| *Column Name*   | *Description*                                                             |
-|-----------------|---------------------------------------------------------------------------|
-| `Data Series`   | Indicates the month and year of the CPI reading (e.g., "2023 Jan")        |
-| `All Items`     | Consumer Price Index (CPI) of all items for the corresponding time period |
-
 Sources: 
-1.[SGCharts](https://coe.sgcharts.com/). 
+1.[SGCharts](https://coe.sgcharts.com/).
+
 2.[`COE` Google Spreadsheet](https://docs.google.com/spreadsheets/d/1Ma8dm_rdtdfNp8ONUG5ykFHwrEg1GFC3ObOMualMVBM/edit?gid=0#gid=0).
-3.[`CPI` Department of Statistics Singapore](https://tablebuilder.singstat.gov.sg/table/TS/M213752).
+
+3.Cross-Checked with data from [data.gov.sg](https://data.gov.sg/datasets/d_69b3380ad7e51aff3a7dcc84eba52b8a/view).
 
 ## Data Cleaning:
-The following transformations were applied to prepare the dataset:
-  1. Renamed **Category** (e.g., to `"Cat A: ≤1600cc or ≤97kW"`); dropped **Cat E (Open)** for being too volatile.  
-  2. Simplified **Bidding Exercise** to `"1"` or `"2"`; extracted **Month** from **Announcement Date**, normalized to 3-letter format (e.g., `"Sep"` not `"Sept"`).  
-  3. Transposed **CPI** data; extracted **Year** and **Month** from `data_series`.  
-  4. Merged **COE** and **CPI** on **Year** and **Month**; computed inflation-adjusted premiums.  
-  5. Standardized column names (lowercase, underscores); ensured correct types (e.g., **Quota** as integer).
+  1. Renamed **Category** (e.g.`"Cat A: ≤1600cc or ≤97kW"`); dropped **Cat E (Open)** as it mimics **Cat B**.
+  2. Simplified **Bidding Exercise** to `"1"` or `"2"`; extracted **Month** from **Announcement Date**, normalised to 3-letter format (e.g., `"Sep"` not `"Sept"`).  
+  3. Standardised column names (lowercase, underscores); ensured correct types (e.g., **Quota** as integer).
 
 ## Libraries and Tools Used: 
 - **Data Handling**: `dplyr`, `tidyverse`, `lubridate`, `stringr`, `readxl`  
@@ -99,32 +90,32 @@ The following transformations were applied to prepare the dataset:
 
 # Insight
 
-::: {.callout-warning title="1. Real COE Premiums Show Slower Growth"}
-- **Nominal COE prices** rose sharply post-2021.
-- **Real (inflation-adjusted) prices** show a more moderate trend.
-- *Perceived cost increase is partly inflation-driven; real burden is more stable.*
+::: {.callout-warning title="1. Feast and Famine: COE Prices and Quota Supply"}
+- *Feast and Famine cycle* can be seen every **10 years** where 10-year COE expires, injecting new supply into the market.
+- COE prices tend to **rise sharply** when quotas are low, and **drop significantly** when quotas are high.
+- *Clear signal of supply-demand dynamics at play in the COE system.*
+- **Quota increases** in late 2023 caused **temporary dips** in COE prices.
 :::
 
-::: {.callout-warning title="2. Cat B Bears the Greatest Burden"}
-- Cat B consistently has the **highest premiums** in both nominal and real terms.
-- Steep increases observed from **2021 to 2023**.
-- *Larger vehicle buyers face the biggest real cost squeeze—likely due to demand or limited quota.*
+::: {.callout-warning title="2. Luxury Segment (Cat B) Is Most Sensitive to Quota Fluctuations"}
+- **Cat B** shows the **highest volatility** in price relative to supply.
+- Strong demand persists even when quotas shrink.
+- *Buyers of larger vehicles may be less price-sensitive—indicating inelastic demand.*
 :::
 
-::: {.callout-warning title="3. Inflation Gap Is Widening Recently"}
-- The **gap between nominal and real prices** has increased since 2022.
-- Nominal values diverge significantly from adjusted values.
-- *Inflation increasingly distorts affordability—real purchasing power is declining.*
+::: {.callout-warning title="3. Prices Anticipate or Lag Behind Quota Changes"}
+- Price hikes often **precede quota reductions** or **linger** after supply rebounds.
+- Suggests **speculative or expectation-driven bidding**.
+- *Market behavior is shaped not only by current supply but future outlook and sentiment.*
 :::
+
 # Further suggestions
 
-Some enhancements that can elevate this visualisation's analytical power and strategic value:
-
-1. **Statistical trend lines or COE 3M-PQP** would help users identify underlying patterns and policy impacts more clearly, particularly during complex periods like 2008–2015 where long-term trends could be distinguished from short-term market volatility.
-
-2. **Comparative affordability metrics** such as COE-to-median-income ratios would add crucial economic context, helping users understand price movements in relation to broader economic conditions and purchasing power.
+An enhancements that can help boost this visualisation's analytical power and strategic value is adding a moving average in the form of **Prevailing Quota Premium (PQP)**. This would provide a clearer view of the underlying trends in COE prices, smoothing out short-term fluctuations and making it easier to identify long-term patterns.
 
 # References
-CNA, SingStat, SGCharts, and LTA.
-
-
+1. CNA
+2. SGCharts
+3. LTA
+4. Data.gov.sg
+5. Grab
