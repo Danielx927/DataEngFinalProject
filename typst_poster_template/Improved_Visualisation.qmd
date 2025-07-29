@@ -1,0 +1,438 @@
+---
+title: "Improved Visualisation"
+format:
+  html:
+    theme: flatly
+    code-fold: true
+    code-summary: "Show Code"
+    df-print: paged
+    page-layout: full
+---
+```{r, message=FALSE, warning=FALSE}
+# Load necessary libraries
+library(plotly)
+library(htmltools)
+library(readr)
+library(dplyr)
+library(lubridate)
+# Load cleaned data
+coe <- read_csv("data/coe_clean.csv")
+
+# Reconstruct Date and labels
+coe <- coe |> mutate( 
+  date = parse_date_time(paste(month, year), orders = "b Y"),
+  date = if_else(bidding_exercise == "2", date + days(10), date),
+  bid_label = bidding_exercise,
+  month_abbr = month,
+  year_full = as.character(year),
+  tick_label = ifelse(month_abbr == "Jan",
+                      paste0(month_abbr, " ", year_full),
+                      month_abbr)
+)
+category_colors <- c(
+  "Cat A: ≤1600cc or ≤97kW" = "#2CA02C",   
+  "Cat B: >1600cc or >97kW" = "#FF7F0E",   
+  "Cat C: Buses" = "#17BECF",              
+  "Cat D: Motorcycles" = "#E377C2"         
+)
+
+# Define order from lowest to highest
+category_order <- c("Cat D: Motorcycles", "Cat C: Buses", "Cat A: ≤1600cc or ≤97kW", "Cat B: >1600cc or >97kW")
+
+# Add dropdown filters for COE categories
+category_levels <- levels(factor(coe$category, levels = category_order))
+
+# Create one button per category
+# Create one button per category
+buttons <- lapply(category_levels, function(cat) {
+  # Create a visibility vector: TRUE for selected category, FALSE otherwise
+  vis <- rep(FALSE, length(category_levels) * 2)
+  cat_index <- which(category_levels == cat)
+  vis[cat_index] <- TRUE  # for line
+  vis[cat_index + length(category_levels)] <- TRUE  # for bar
+
+  list(
+    method = "update",
+    args = list(
+      list(visible = vis),
+      list(title = paste("Category:", cat),
+           "yaxis.autorange" = TRUE,
+           "yaxis2.autorange" = TRUE)
+    ),
+    label = cat
+  )
+})
+
+# Add 'All' button at the beginning
+# Add 'All' button at the beginning
+buttons <- c(
+  list(list(
+    method = "update",
+    args = list(
+      list(visible = rep(TRUE, length(category_levels) * 2)),
+      list(title = "COE Premium vs. Supply",
+           "xaxis.autorange" = TRUE,
+           "yaxis.autorange" = TRUE,
+           "yaxis2.autorange" = TRUE)
+    ),
+    label = "All"
+  )),
+  buttons
+)
+
+
+
+
+# Define event periods of interest
+event <- tibble::tibble(
+  event = c("2008 Financial Crisis", "Panic Bidding", "GrabCar Launch", "GrabCoach/Shuttle Launch","COVID‑19 Suspension", "2023 Quota Injection", "2025 Quota Injection"),
+  start = as.Date(c("2007-12-01", "2010-01-01", "2015-08-01", "2017-02-01","2020-04-07", "2023-11-01", "2025-02-01")),
+  end   = as.Date(c("2009-06-30", "2010-12-30", "2015-09-30", "2017-03-01", "2020-06-07", "2024-01-30","2025-04-30")),
+  color = c("rgba(255,0,0,0.2)", "rgba(255,165,0,0.1)", "rgba(0,0,255,0.1)", "rgba(255,0,0,0.2)",
+            "rgba(255,165,0,0.1)","rgba(0,255,0,0.1)", "rgba(255,0,0,0.2)"), 
+  label = c("2008 Financial Crisis", "Panic Bidding", "GrabCar Launch", "GrabCoach/Shuttle Launch","COVID‑19 Suspension", "2023 Quota Injection", "2025 Quota Injection"),
+)
+
+# Create month and year columns for annotations
+month_centers <- coe |>
+  group_by(month, year) |>
+  summarise(
+    center_date = mean(date),
+    .groups = "drop"
+  )
+
+
+# Compute default view range: last 10 years
+max_date <- max(coe$date, na.rm = TRUE)
+min_date <- max_date %m-% years(1)
+
+# Month annotations per month/year
+month_annots <- coe |>
+  group_by(month, year = year(date)) |>
+  summarise(mid_date = mean(date), .groups = "drop") |>
+  filter(!is.na(mid_date))
+
+
+# Build interactive plot
+p <- plot_ly(data = coe, type = 'scatter', mode = 'lines') |>
+  add_trace(
+    x = ~date,
+    y = ~quota_premium,
+    name = ~paste("Premium -", category),
+    color = ~category,
+    colors = "category_colors",
+    hoverinfo = "text",
+    text = ~paste(
+      "Category:", category,
+      paste0("<br>Month-Year: ", month, " ", year),
+      paste0("<br>Bidding Exercise: ", bidding_exercise),
+      paste0("<br>Quota Premium: S$", formatC(quota_premium, format = "f", big.mark = ",", digits = 0))
+    )
+  )
+
+
+# Add grouped bar for quota by category on right y-axis
+p <- p |> add_trace(
+  data = coe,
+  x = ~date,
+  y = ~quota,
+  type = "bar",
+  name = ~paste("Quota -", category),
+  color = ~category,
+  colors = "category_colors",
+  showlegend = TRUE,     
+  yaxis = "y2",
+  opacity = 0.5,
+  hoverinfo = "text",     
+  text = ~paste(
+  "Category:", category,
+  paste0("<br>Month-Year: ", month, " ", year),
+  paste0("<br>Bidding Exercise: ", bidding_exercise),
+  paste0("<br>Quota: ", formatC(quota, format = "f", big.mark = ",", digits = 0))
+  ),
+  width = 2e8  
+)
+
+# Add event highlighted area
+p <- p |>
+  layout(
+    shapes = purrr::pmap(event, function(start, end, color, label, ...) {
+      list(
+        type = "rect",
+        xref = "x", x0 = start, x1 = end,
+        yref = "paper", y0 = 0, y1 = 1,
+        fillcolor = color,
+        line = list(width = 0),
+        layer = "below"
+      )
+    }),
+    annotations = purrr::pmap(event, function(start, end, label, ...) {
+      list(
+        x = start + (end - start)/2,
+        xref = "x",
+        y = 1.02,
+        yref = "paper",
+        text = label,
+        showarrow = FALSE,
+        font = list(size = 12, color = "black")
+      )
+    })
+  )
+
+# Month label annotations (top row)
+annotations <- list()
+
+# Row 1: Month (centered)
+for (i in seq_len(nrow(month_centers))) {
+  annotations[[length(annotations) + 1]] <- list(
+    x = month_centers$center_date[i],
+    y = -0.10,
+    text = month_centers$month[i],
+    xref = "x",
+    yref = "paper",
+    showarrow = FALSE,
+    font = list(size = 11, family = "Arial"),
+    yanchor = "top"
+  )
+}
+
+# Row 2: Year — only show for January
+for (i in seq_len(nrow(month_centers))) {
+  if (month_centers$month[i] == "Jan") {
+    annotations[[length(annotations) + 1]] <- list(
+      x = month_centers$center_date[i],
+      y = -0.14,
+      text = as.character(month_centers$year[i]),
+      xref = "x",
+      yref = "paper",
+      showarrow = FALSE,
+      font = list(size = 11, family = "Arial"),
+      yanchor = "top"
+    )
+  }
+}
+
+# Row 3: Bidding round — per point
+for (i in seq_len(nrow(coe))) {
+  annotations[[length(annotations) + 1]] <- list(
+    x = coe$date[i],
+    y = -0.18,
+    text = coe$bidding_exercise[i],
+    xref = "x",
+    yref = "paper",
+    showarrow = FALSE,
+    font = list(size = 10, family = "Courier New"),
+    yanchor = "top"
+  )
+}
+
+# Define tick labels: only show full year if the zoom range exceeds 1 year
+visible_range <- as.numeric(difftime(max_date, min_date, units = "days")) > 365
+
+coe <- coe |> mutate(
+  tick_label = if (visible_range) {
+    ifelse(month == "Jan", as.character(year), "")
+  } else {
+    ifelse(month == "Jan", paste0(month, " ", year), month)
+  }
+)
+
+# Layout with initial view range set to last 10 years
+p <- p |> layout(
+  autosize = TRUE,
+  width = NULL,
+  title = list(
+    text = "COE Prices vs Quota Supply",
+    y = 0.98,
+    x = 0.5,
+    pad = list(b = 1000)
+  ),
+  
+updatemenus = list(
+
+  # 📆 Year Range Selector (Left side)
+  list(
+    type = "buttons",
+    direction = "right",
+    x = 0,
+    xanchor = "left",
+    y = 1.18,
+    yanchor = "top",
+    showactive = TRUE,
+    active = 4,  # default active = "All"
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1,
+    pad = list(t = 5, r = 10),
+    buttons = list(
+      list(method = "relayout", label = "1y", args = list(list("xaxis.range" = list(max_date %m-% years(1), max_date)))),
+      list(method = "relayout", label = "2y", args = list(list("xaxis.range" = list(max_date %m-% years(2), max_date)))),
+      list(method = "relayout", label = "5y", args = list(list("xaxis.range" = list(max_date %m-% years(5), max_date)))),
+      list(method = "relayout", label = "10y", args = list(list("xaxis.range" = list(max_date %m-% years(10), max_date)))),
+      list(method = "relayout", label = "All", args = list(list("xaxis.autorange" = TRUE)))
+    )
+  ),
+
+  # 🔢 Log/Linear Toggle (Right beside year filter)
+  list(
+    type = "buttons",
+    direction = "right",
+    x = 0.26,
+    xanchor = "left",
+    y = 1.18,
+    yanchor = "top",
+    showactive = TRUE,
+    active = 0,  # default active = "Linear"
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1,
+    pad = list(t = 5, r = 10),
+    buttons = list(
+      list(
+        method = "relayout",
+        label = "Linear",
+        args = list(list("yaxis.type" = "linear", "yaxis2.type" = "linear"))
+      ),
+      list(
+        method = "relayout",
+        label = "Log",
+        args = list(list("yaxis.type" = "log", "yaxis2.type" = "log"))
+      )
+    )
+  ),
+
+  # 🗂 Category Dropdown (Top Right)
+  list(
+    type = "dropdown",
+    direction = "down",
+    x = 1,
+    xanchor = "right",
+    y = 1.18,
+    yanchor = "top",
+    showactive = TRUE,
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1,
+    pad = list(t = 5, r = 10),
+    buttons = buttons
+  )
+),
+  
+  xaxis = list(
+    title = "",
+    tickvals = coe$date,
+    ticktext = rep("", nrow(coe)),
+    tickangle = 0,
+    tickfont = list(size = 10),
+    automargin = TRUE,
+    autorange = TRUE
+  ),
+  yaxis = list(
+    title = "Quota Premium",
+    tickprefix = "S$",
+    tickformat = ",.0f",
+    autorange = TRUE
+  ),
+  yaxis2 = list(
+    title = "Quota Supply",
+    overlaying = "y",
+    side = "right",
+    tickformat = ",.0f",
+    autorange = TRUE
+  ),
+  barmode = "group",
+  annotations = annotations,
+  margin = list(r = 80, t = 65),
+  legend = list(
+  orientation = "h",
+  x = 0.5,
+  y = -0.3,
+  xanchor = "center",
+  traceorder = "normal",
+  valign = "middle",
+  font = list(size = 10),
+  bordercolor = "rgba(0,0,0,0.1)",
+  borderwidth = 1,
+  tracegroupgap = 5,
+  itemclick = "toggleothers",
+  itemdoubleclick = "toggle")
+)
+
+## Javascript for dynamic label updates
+htmlwidgets::onRender(p, "
+  function(el, x) {
+    const annotations = x.layout.annotations || [];
+
+    // Cache original values
+    annotations.forEach(a => {
+      if (a.y === -0.10) a._originalMonth = a.text;
+      if (a.y === -0.14) a._originalYear = a.text;
+      if (a.y === -0.18) a._originalBid = a.text;
+      a._originalX = a.x;
+    });
+
+    function updateLabels(range) {
+      const start = new Date(range[0]);
+      const end = new Date(range[1]);
+      const diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+
+      annotations.forEach(a => {
+        const date = new Date(a._originalX);
+        const month = date.toLocaleString('default', { month: 'short' });
+
+        if (a.y === -0.10) {
+          // Month labels
+          if (diffMonths <= 24) {
+            a.text = a._originalMonth;
+          } else if (diffMonths < 120) {
+            a.text = ['Jan', 'Apr', 'Jul', 'Oct'].includes(month) ? a._originalMonth : '';
+          } else {
+            a.text = '';
+          }
+        } else if (a.y === -0.14) {
+          // Year label only for January
+          a.text = (month === 'Jan') ? a._originalYear : '';
+        } else if (a.y === -0.18) {
+          // Bidding round
+          a.text = (diffMonths <= 24) ? a._originalBid : '';
+        }
+      });
+
+      Plotly.relayout(el, {annotations: annotations});
+    }
+
+    el.on('plotly_relayout', function(e) {
+      const r0 = e['xaxis.range[0]'];
+      const r1 = e['xaxis.range[1]'];
+      if (r0 && r1) updateLabels([r0, r1]);
+    });
+
+    updateLabels(x.layout.xaxis.range); // Initial render
+  }
+")
+
+
+```
+
+```{r}
+htmltools::tags$style(HTML("
+.callout-tip {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-left: 5px solid #FF7F0E !important;
+}
+"))
+
+htmltools::tags$style(htmltools::HTML("
+nav.toc, .toc {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+}
+"))
+```
