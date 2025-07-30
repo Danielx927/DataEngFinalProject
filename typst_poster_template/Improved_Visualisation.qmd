@@ -37,7 +37,7 @@ category_colors <- c(
 )
 
 # Define order from lowest to highest
-category_order <- c("Cat D: Motorcycles", "Cat C: Buses", "Cat A: ≤1600cc or ≤97kW", "Cat B: >1600cc or >97kW")
+category_order <- c("Cat D: Motorcycles", "Cat A: ≤1600cc or ≤97kW", "Cat B: >1600cc or >97kW", "Cat C: Buses")
 
 # Add dropdown filters for COE categories
 category_levels <- levels(factor(coe$category, levels = category_order))
